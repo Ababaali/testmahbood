@@ -95,10 +95,12 @@ async def telegram_webhook():
     try:
         data = request.get_json(force=True)
         update = Update.de_json(data, bot)
+        await application.initialize()  # ✅ اضافه شد
         await application.process_update(update)
     except Exception as e:
         await bot.send_message(chat_id=ADMIN_ID, text=f"❌ خطای اصلی وب‌هوک:\n{e}\n{traceback.format_exc()}")
     return "ok"
+
 
 @app.route("/", methods=["GET", "HEAD"])
 def home():
