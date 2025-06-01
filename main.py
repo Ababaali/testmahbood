@@ -35,7 +35,8 @@ def create_image_with_time():
         img = Image.open(BACKGROUND_IMAGE).convert("RGB")
         draw = ImageDraw.Draw(img)
         font = ImageFont.truetype(FONT_PATH, FONT_SIZE)
-        time_text = get_tehran_time()
+        time_text = " ساعت در این لحظه" + get_tehran_time()
+
 
         bbox = draw.textbbox((0, 0), time_text, font=font)
         w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
