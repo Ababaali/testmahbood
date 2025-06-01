@@ -143,28 +143,36 @@ def create_image_with_text():
     hadith_lines = hadith_lines_fa + [""] + hadith_lines_tr  # خط خالی بین فارسی و ترجمه
 
     # ==== رسم حدیث خط به خط با مستطیل بنفش ====
+        # ==== رسم حدیث و ترجمه خط به خط ====
+    max_text_width = image.width - 160
+
+    # حذف کاراکتر اضافی بین حدیث و ترجمه (مثل نقطه یا خط)
+    hadith_fa = hadith_fa.strip(" .●ـ*-–—")  # پاک‌سازی اضافات احتمالی
+    hadith_tr = hadith_tr.strip(" .●ـ*-–—")
+
+    # === حدیث فارسی ===
+    hadith_lines_fa = wrap_text(hadith_fa, font_bold, max_text_width, draw)
+
     line_height = 38
     line_spacing = 60
     box_padding_x = 20
     box_padding_y = 5
     corner_radius = 30
 
-    for line in hadith_lines:
+    for line in hadith_lines_fa:
         text_width, text_height = draw.textbbox((0, 0), line, font=font_bold)[2:]
         box_width = text_width + 2 * box_padding_x
         box_height = line_height
 
         x = (image.width - box_width) // 2
-
         draw.rounded_rectangle(
             [x, y, x + box_width, y + box_height],
             radius=corner_radius,
-            fill="#800080"
+            fill="#800080"  # رنگ بنفش برای متن فارسی
         )
 
         text_x = (image.width - text_width) // 2
         text_y = y + (box_height - text_height) // 2
-
         draw.text(
             (text_x, text_y),
             line,
@@ -175,6 +183,35 @@ def create_image_with_text():
         )
 
         y += box_height + line_spacing
+
+    # === ترجمه فارسی ===
+    hadith_lines_tr = wrap_text(hadith_tr, font_bold, max_text_width, draw)
+
+    for line in hadith_lines_tr:
+        text_width, text_height = draw.textbbox((0, 0), line, font=font_bold)[2:]
+        box_width = text_width + 2 * box_padding_x
+        box_height = line_height
+
+        x = (image.width - box_width) // 2
+        draw.rounded_rectangle(
+            [x, y, x + box_width, y + box_height],
+            radius=corner_radius,
+            fill="#0e2d33"  # رنگ خاص ترجمه
+        )
+
+        text_x = (image.width - text_width) // 2
+        text_y = y + (box_height - text_height) // 2
+        draw.text(
+            (text_x, text_y),
+            line,
+            font=font_bold,
+            fill="white",
+            stroke_width=5,
+            stroke_fill="#0e2d33",
+        )
+
+        y += box_height + line_spacing
+
 
    
 
