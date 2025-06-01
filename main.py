@@ -32,8 +32,12 @@ FONT_BOLD = "Pinar-DS3-FD-Bold.ttf"
 # ==== خواندن حدیث ====
 def get_random_hadith():
     with open("hadiths.txt", "r", encoding="utf-8") as f:
-        hadiths = [h.strip() for h in f.readlines() if h.strip()]
-    return random.choice(hadiths)
+        lines = [line.strip() for line in f.readlines() if line.strip()]
+    
+    # هر حدیث دو خطه: خط اول فارسی، خط دوم ترجمه
+    hadith_pairs = [(lines[i], lines[i+1]) for i in range(0, len(lines) - 1, 2)]
+    return random.choice(hadith_pairs)
+
 HIJRI_MONTHS_FA = [
     "محرم", "صفر", "ربیع‌الاول", "ربیع‌الثانی", "جمادی‌الاول", "جمادی‌الثانی",
     "رجب", "شعبان", "رمضان", "شوال", "ذی‌القعده", "ذی‌الحجه"
@@ -66,9 +70,10 @@ def create_image_with_text():
     hijri_obj = Gregorian(now.year, now.month, now.day).to_hijri()
     hijri_month_name = HIJRI_MONTHS_FA[hijri_obj.month - 1]
     hijri = f"{hijri_obj.day:02d} {hijri_month_name} {hijri_obj.year}"
-    jalali = now.strftime("%d %B %Y")  # جایگزینی با jdatetime در صورت نیاز
+    jalali = JalaliDate.today().strftime("%d %B %Y")  # خروجی: ۰۲ خرداد ۱۴۰۴
 
-    hadith = get_random_hadith()
+    # دریافت حدیث و ترجمه
+    hadith_fa, hadith_tr = get_random_hadith()
 
     # فونت‌ها
     font_black = ImageFont.truetype(FONT_BLACK, 70)
@@ -83,8 +88,8 @@ def create_image_with_text():
     draw.text((x, y), text, font=font_black, fill="white")
     y += h + 40
 
-    jalali_date = JalaliDate.today().strftime("%d %B %Y")  # خروجی: ۰۲ خرداد ۱۴۰۴
-    text = jalali_date
+    # ==== تاریخ شمسی ====
+    text = jalali
     w, h = draw.textbbox((0, 0), text, font=font_bold)[2:]
     x = (image.width - w) // 2
     draw.text((x, y), text, font=font_bold, fill="white")
@@ -129,10 +134,15 @@ def create_image_with_text():
 
     y += 160  # فاصله از عنوان حدیث تا اولین خط حدیث
 
-    # ==== رسم حدیث خط به خط با مستطیل دور ====
+    # ==== آماده‌سازی خطوط حدیث (فارسی + ترجمه) ====
     max_text_width = image.width - 160
-    hadith_lines = wrap_text(hadith, font_bold, max_text_width, draw)
 
+    hadith_lines_fa = wrap_text(hadith_fa, font_bold, max_text_width, draw)
+    hadith_lines_tr = wrap_text(hadith_tr, font_bold, max_text_width, draw)
+
+    hadith_lines = hadith_lines_fa + [""] + hadith_lines_tr  # خط خالی بین فارسی و ترجمه
+
+    # ==== رسم حدیث خط به خط با مستطیل بنفش ====
     line_height = 38
     line_spacing = 60
     box_padding_x = 20
@@ -145,6 +155,7 @@ def create_image_with_text():
         box_height = line_height
 
         x = (image.width - box_width) // 2
+
         draw.rounded_rectangle(
             [x, y, x + box_width, y + box_height],
             radius=corner_radius,
@@ -153,6 +164,7 @@ def create_image_with_text():
 
         text_x = (image.width - text_width) // 2
         text_y = y + (box_height - text_height) // 2
+
         draw.text(
             (text_x, text_y),
             line,
@@ -163,6 +175,8 @@ def create_image_with_text():
         )
 
         y += box_height + line_spacing
+
+   
 
     # ==== ذخیره تصویر ====
     output_path = "output.png"
