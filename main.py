@@ -111,14 +111,6 @@ def create_image_with_text():
     y += h + 60
 
     # ==== عنوان حدیث با مستطیل گرد ====
-    
-
-    draw.rounded_rectangle(
-        [title_x - 30, title_y - 10, title_x + title_text_width + 30, title_y + title_text_height + 10],
-        radius=radius,
-        fill="white"
-    )
-
    
 
     y += 160  # فاصله از عنوان حدیث تا اولین خط حدیث
