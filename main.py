@@ -3,6 +3,7 @@ import random
 import traceback
 from flask import Flask, request
 from datetime import datetime
+from khayyam import JalaliDate
 from PIL import Image, ImageDraw, ImageFont
 from hijri_converter import Gregorian
 from telegram import Bot, Update
@@ -82,22 +83,22 @@ def create_image_with_text():
     draw.text((x, y), text, font=font_black, fill="white")
     y += h + 40
 
-    # ==== تاریخ شمسی ====
-    text = f"تاریخ شمسی: {jalali}"
+    jalali_date = JalaliDate.today().strftime("%d %B %Y")  # خروجی: ۰۲ خرداد ۱۴۰۴
+    text = jalali_date
     w, h = draw.textbbox((0, 0), text, font=font_bold)[2:]
     x = (image.width - w) // 2
     draw.text((x, y), text, font=font_bold, fill="white")
     y += h + 20
 
     # ==== تاریخ قمری ====
-    text = f"تاریخ قمری: {hijri}"
+    text = hijri
     w, h = draw.textbbox((0, 0), text, font=font_bold)[2:]
     x = (image.width - w) // 2
     draw.text((x, y), text, font=font_bold, fill="white")
     y += h + 20
 
     # ==== تاریخ میلادی ====
-    text = f"تاریخ میلادی: {gregorian}"
+    text = gregorian
     w, h = draw.textbbox((0, 0), text, font=font_bold)[2:]
     x = (image.width - w) // 2
     draw.text((x, y), text, font=font_bold, fill="white")
@@ -126,14 +127,14 @@ def create_image_with_text():
         stroke_fill="white",
     )
 
-    y += 120  # فاصله از عنوان حدیث تا اولین خط حدیث
+    y += 160  # فاصله از عنوان حدیث تا اولین خط حدیث
 
     # ==== رسم حدیث خط به خط با مستطیل دور ====
     max_text_width = image.width - 160
     hadith_lines = wrap_text(hadith, font_bold, max_text_width, draw)
 
     line_height = 38
-    line_spacing = 40
+    line_spacing = 60
     box_padding_x = 20
     box_padding_y = 5
     corner_radius = 30
@@ -158,7 +159,7 @@ def create_image_with_text():
             font=font_bold,
             fill="white",
             stroke_width=5,
-            stroke_fill="white",
+            stroke_fill="#800080",
         )
 
         y += box_height + line_spacing
