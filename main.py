@@ -16,6 +16,7 @@ BACKGROUND_IMAGE = "clock.png"
 FONT_SIZE = 100
 WEBHOOK_URL = "https://testmahbood.onrender.com"
 
+
 # راه‌اندازی Flask
 app = Flask(__name__)
 bot = Bot(token=TOKEN)
@@ -28,11 +29,20 @@ def get_tehran_time():
 
 # ساخت عکس با ساعت درج‌شده
 def create_image_with_time():
-    img = Image.open(BACKGROUND_IMAGE).convert("RGB")
-    draw = ImageDraw.Draw(img)
-    font = ImageFont.truetype(FONT_PATH, FONT_SIZE)
-    time_text = get_tehran_time()
+    try:
+        img = Image.open(BACKGROUND_IMAGE).convert("RGB")
+    except Exception as e:
+        print("❌ خطا در باز کردن تصویر:", e)
+        raise
 
+    try:
+        draw = ImageDraw.Draw(img)
+        font = ImageFont.truetype(FONT_PATH, FONT_SIZE)
+    except Exception as e:
+        print("❌ خطا در لود فونت:", e)
+        raise
+
+    time_text = get_tehran_time()
     w, h = draw.textsize(time_text, font=font)
     W, H = img.size
     x = (W - w) / 2
@@ -49,6 +59,7 @@ def send_clock_image():
         image_path = create_image_with_time()
         with open(image_path, "rb") as photo:
             bot.send_photo(chat_id=CHANNEL_ID, photo=photo)
+        print("✅ عکس با موفقیت ارسال شد.")
     except Exception as e:
         print("❌ خطا در ارسال تصویر:", e)
 
@@ -85,3 +96,4 @@ if __name__ == "__main__":
     bot.set_webhook(url=WEBHOOK_URL)
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+
