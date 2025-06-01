@@ -43,7 +43,9 @@ def create_image_with_text():
     # تاریخ‌ها
     now = datetime.now(pytz.timezone("Asia/Tehran"))
     gregorian = now.strftime("%d %B %Y")
-    hijri = Gregorian(now.year, now.month, now.day).to_hijri().strftime("%d %B %Y")
+    hijri_obj = Gregorian(now.year, now.month, now.day).to_hijri()
+    hijri = f"{hijri_obj.day:02d} {hijri_obj.month_name('fa')} {hijri_obj.year}"
+
     jalali = now.strftime("%d %B %Y")  # در صورت استفاده از jdatetime دقیق‌تر میشه
 
     hadith = get_random_hadith()
