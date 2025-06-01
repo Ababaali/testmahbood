@@ -37,6 +37,21 @@ HIJRI_MONTHS_FA = [
     "محرم", "صفر", "ربیع‌الاول", "ربیع‌الثانی", "جمادی‌الاول", "جمادی‌الثانی",
     "رجب", "شعبان", "رمضان", "شوال", "ذی‌القعده", "ذی‌الحجه"
 ]
+def wrap_text(text, font, max_width, draw):
+    lines = []
+    words = text.split()
+    line = ""
+    for word in words:
+        test_line = f"{line} {word}".strip()
+        w, _ = draw.textbbox((0, 0), test_line, font=font)[2:]
+        if w <= max_width:
+            line = test_line
+        else:
+            lines.append(line)
+            line = word
+    if line:
+        lines.append(line)
+    return lines
 
 # ==== ساخت تصویر ====
 def create_image_with_text():
