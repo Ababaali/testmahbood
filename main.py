@@ -1,116 +1,132 @@
-from flask import Flask, request
-from telegram import Bot, Update
-from telegram.ext import Dispatcher, CommandHandler
-from PIL import Image, ImageDraw, ImageFont
-from datetime import datetime
-import pytz
-import threading
-import time
 import os
+import random
 import traceback
+from flask import Flask, request
+from datetime import datetime
+from PIL import Image, ImageDraw, ImageFont
+from hijri_converter import Gregorian
+from telegram import Bot
+import pytz
 
-# اطلاعات ربات و کانال
-TOKEN = "7996297648:AAHBtbd6lGGQjUIOjDNRsqETIOCNUfPcU00"
-CHANNEL_ID = "-1002605751569"     # آی‌دی کانال (با دقت بررسی شود)
-ADMIN_ID = 486475495      # آی‌دی عددی خودت برای دریافت خطاها
-FONT_PATH = "Pinar-Black.ttf"     # یا مثلاً "arial.ttf" برای تست
-BACKGROUND_IMAGE = "clock.png"
-FONT_SIZE = 100
-WEBHOOK_URL = "https://testmahbood.onrender.com"
+# ==== تنظیمات ====
+TOKEN = "توکن_ربات"
+CHANNEL_ID = "@your_channel_id"
+ADMIN_ID = 123456789  # عددی
+PORT = int(os.environ.get("PORT", 10000))
 
-
-# راه‌اندازی Flask و ربات
-app = Flask(__name__)
 bot = Bot(token=TOKEN)
-dispatcher = Dispatcher(bot, None, use_context=True)
+app = Flask(__name__)
 
-# گرفتن ساعت تهران
-def get_tehran_time():
-    tz = pytz.timezone("Asia/Tehran")
-    return datetime.now(tz).strftime("%H:%M")
+# ==== فونت‌ها ====
+FONT_BLACK = "Pinar-DS3-FD-Black.ttf"
+FONT_BOLD = "Pinar-DS3-FD-Bold.ttf"
 
-# ساخت تصویر ساعت
-def create_image_with_time():
+# ==== لیست احادیث ====
+def get_random_hadith():
+    with open("hadiths.txt", "r", encoding="utf-8") as f:
+        hadiths = [h.strip() for h in f.readlines() if h.strip()]
+    return random.choice(hadiths)
+
+# ==== تولید تصویر ====
+def create_image_with_text():
     try:
-        img = Image.open(BACKGROUND_IMAGE).convert("RGB")
-        draw = ImageDraw.Draw(img)
-        font = ImageFont.truetype(FONT_PATH, FONT_SIZE)
-        time_text = " ساعت در این لحظه" + get_tehran_time()
+        image = Image.open("000.png").convert("RGBA")
+        draw = ImageDraw.Draw(image)
 
+        # ساعت ایران
+        now = datetime.now(pytz.timezone("Asia/Tehran"))
+        gregorian = now.strftime("%Y/%m/%d")
+        hijri = Gregorian(now.year, now.month, now.day).to_hijri().isoformat().replace("-", "/")
+        jalali = now.strftime("%Y/%m/%d")  # می‌تونی با khayyam یا jdatetime دقیق‌تر کنی
 
-        bbox = draw.textbbox((0, 0), time_text, font=font)
-        w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        W, H = img.size
-        x = (W - w) / 2
-        y = (H - h) / 2
+        hadith = get_random_hadith()
 
-        draw.text((x, y), time_text, font=font, fill="white")
-        output_path = "output.jpg"
-        img.save(output_path)
+        # فونت‌ها
+        font_black = ImageFont.truetype(FONT_BLACK, 70)
+        font_bold = ImageFont.truetype(FONT_BOLD, 70)
+
+        # نوشتن "امروز"
+        draw.text((100, 50), "امروز", font=font_black, fill="white", stroke_width=5, stroke_fill="black")
+
+        # تاریخ‌ها
+        draw.text((100, 150), f"تاریخ شمسی: {jalali}", font=font_bold, fill="white")
+        draw.text((100, 230), f"تاریخ قمری: {hijri}", font=font_bold, fill="white")
+        draw.text((100, 310), f"تاریخ میلادی: {gregorian}", font=font_bold, fill="white")
+
+        # === بخش حدیث ===
+        hadith_title_font = ImageFont.truetype(FONT_BLACK, 70)
+        hadith_text_font = ImageFont.truetype(FONT_BOLD, 70)
+
+        # اندازه کلمه حدیث
+        text = "حدیث"
+        w, h = draw.textbbox((0, 0), text, font=hadith_title_font)[2:]
+        draw.rectangle([100, 390, 100 + 300, 390 + 25], fill="white")
+        draw.text((100 + (300 - w)//2, 392), text, font=hadith_title_font, fill="#014612", stroke_width=5, stroke_fill="white")
+
+        # اندازه مستطیل حدیث (زیر متن حدیث)
+        hadith_lines = hadith.split("\n")
+        max_width = 1200
+        y = 460
+        text_area_w = 1300
+
+        # اندازه‌گیری متن حدیث
+        line_spacing = 90
+        total_height = line_spacing * len(hadith_lines)
+        draw.rectangle([90, y, 90 + text_area_w, y + total_height + 30], fill="#800080")
+
+        # نوشتن متن حدیث
+        for i, line in enumerate(hadith_lines):
+            draw.text((100, y + i * line_spacing), line, font=hadith_text_font, fill="white", stroke_width=5, stroke_fill="white")
+
+        # ذخیره
+        output_path = "output.png"
+        image.save(output_path)
         return output_path
+
     except Exception as e:
-        print("❌ خطا در ساخت تصویر:", e)
+        bot.send_message(chat_id=ADMIN_ID, text=f"❌ خطا در ساخت تصویر:\n{str(e)}\n\n{traceback.format_exc()}")
         raise e
 
-
-# ارسال تصویر به کانال
-def send_clock_image():
+# ==== ارسال تصویر ====
+def send_image():
     try:
-        image_path = create_image_with_time()
-        with open(image_path, "rb") as photo:
-            bot.send_photo(chat_id=CHANNEL_ID, photo=photo, caption=f"🕒 ساعت {get_tehran_time()}")
-            bot.send_message(chat_id=ADMIN_ID, text="✅ تصویر ساعت با موفقیت ارسال شد.")
+        image_path = create_image_with_text()
+        with open(image_path, "rb") as img:
+            bot.send_photo(chat_id=CHANNEL_ID, photo=img)
     except Exception as e:
-        error_text = f"❌ خطا در ارسال تصویر:\n{str(e)}"
-        bot.send_message(chat_id=ADMIN_ID, text=error_text)
-        bot.send_message(chat_id=ADMIN_ID, text=traceback.format_exc())
+        bot.send_message(chat_id=ADMIN_ID, text=f"❌ خطا در ارسال تصویر:\n{str(e)}")
 
-# حلقه‌ی ۵ دقیقه‌ای ارسال
-def job_loop():
-    while True:
-        send_clock_image()
-        time.sleep(300)
+# ==== پینگ اپ‌تایم ====
+@app.route("/", methods=["GET", "HEAD"])
+def home():
+    return "Bot is alive!"
 
-job_thread = threading.Thread(target=job_loop)
-job_thread.daemon = True
-
-# دستور start
-def start(update, context):
-    user_id = update.effective_user.id
-    bot.send_message(chat_id=user_id, text="✅ ارسال ساعت آغاز شد.")
-    try:
-        send_clock_image()
-    except Exception as e:
-        bot.send_message(chat_id=user_id, text="❌ خطا هنگام ارسال تصویر: " + str(e))
-    if not job_thread.is_alive():
-        job_thread.start()
-
-dispatcher.add_handler(CommandHandler("start", start))
-
-# روت اصلی و وب‌هوک
-@app.route("/", methods=["GET", "POST"])
+# ==== هندل وب‌هوک Start ====
+@app.route("/", methods=["POST"])
 def webhook():
-    if request.method == "POST":
-        try:
-            update = Update.de_json(request.get_json(force=True), bot)
-            dispatcher.process_update(update)
-        except Exception as e:
-            bot.send_message(chat_id=ADMIN_ID, text="❌ خطا در پردازش پیام ورودی")
-            bot.send_message(chat_id=ADMIN_ID, text=traceback.format_exc())
+    try:
+        data = request.get_json()
+        if "message" in data and "text" in data["message"]:
+            text = data["message"]["text"]
+            chat_id = data["message"]["chat"]["id"]
+            if text == "/start":
+                bot.send_message(chat_id=chat_id, text="✅ ربات ساعت حدیث فعال است.")
+                send_image()
+    except Exception as e:
+        bot.send_message(chat_id=ADMIN_ID, text=f"❌ خطای کلی:\n{str(e)}\n{traceback.format_exc()}")
     return "ok"
 
-# مسیر تست دستی در مرورگر
-@app.route("/test")
-def test_image():
-    try:
-        send_clock_image()
-        return "✅ تصویر ارسال شد"
-    except Exception as e:
-        return f"❌ خطا: {str(e)}"
+# ==== زمان‌بندی هر ۵ دقیقه ====
+import threading
+import time
 
-# شروع برنامه
+def loop_sender():
+    while True:
+        send_image()
+        time.sleep(300)  # هر ۵ دقیقه
+
+threading.Thread(target=loop_sender, daemon=True).start()
+
+# ==== اجرای Flask ====
 if __name__ == "__main__":
-    bot.delete_webhook()
-    bot.set_webhook(url=WEBHOOK_URL)
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=PORT)
