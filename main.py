@@ -196,6 +196,8 @@ async def main():
 
     application.add_handler(CommandHandler("start", start_handler))
 
+    await application.initialize()  # 👈 این خط را اضافه کن
+
     # اجرای تسک ارسال تصویر دوره‌ای در پس‌زمینه
     asyncio.create_task(send_image_periodically())
 
@@ -208,6 +210,7 @@ async def main():
     config.bind = [f"0.0.0.0:{PORT}"]
 
     await serve(app, config)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
