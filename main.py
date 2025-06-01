@@ -105,60 +105,67 @@ def create_image_with_text():
     draw.text((x, y), text, font=font_bold, fill="white")
     y += h + 60
 
-       # ==== مستطیل و عنوان حدیث (وسط‌چین) ====
-    hadith_title = "حدیث"
-    hadith_title_font = ImageFont.truetype(FONT_BLACK, 70)
-    w, h = draw.textbbox((0, 0), hadith_title, font=hadith_title_font)[2:]
-    hadith_title_x = (image.width - w) // 2
-    draw.rectangle(
-        [hadith_title_x - 20, y, hadith_title_x + w + 20, y + 80],
-        fill="white"
+          # ==== عنوان حدیث با مستطیل گرد (وسط‌چین دقیق) ====
+hadith_title = "حدیث"
+hadith_title_font = ImageFont.truetype(FONT_BLACK, 70)
+title_text_width, title_text_height = draw.textbbox((0, 0), hadith_title, font=hadith_title_font)[2:]
+title_x = (image.width - title_text_width) // 2
+title_y = y
+
+# مستطیل سفید با گوشه‌های گرد دور کلمه "حدیث"
+radius = 20
+draw.rounded_rectangle(
+    [title_x - 30, title_y - 10, title_x + title_text_width + 30, title_y + 28.14 + 10],
+    radius=radius,
+    fill="white"
+)
+
+# رسم کلمه حدیث
+draw.text(
+    (title_x, title_y),
+    hadith_title,
+    font=hadith_title_font,
+    fill="#014612",
+    stroke_width=5,
+    stroke_fill="white",
+)
+
+y += 120  # فاصله از عنوان حدیث تا اولین خط حدیث
+
+# ==== رسم حدیث خط به خط با مستطیل دور متن ====
+max_text_width = image.width - 160  # حاشیه چپ و راست
+hadith_lines = wrap_text(hadith, font_bold, max_text_width, draw)
+
+line_height = 38
+line_spacing = 40  # فاصله عمودی بین خطوط
+box_padding_x = 20
+box_padding_y = 5
+corner_radius = 30
+
+for line in hadith_lines:
+    text_width, text_height = draw.textbbox((0, 0), line, font=font_bold)[2:]
+    box_width = text_width + 2 * box_padding_x
+    box_height = line_height
+
+    x = (image.width - box_width) // 2
+    draw.rounded_rectangle(
+        [x, y, x + box_width, y + box_height],
+        radius=corner_radius,
+        fill="#800080"
     )
+
+    text_x = (image.width - text_width) // 2
+    text_y = y + (box_height - text_height) // 2
     draw.text(
-        (hadith_title_x, y + 5),
-        hadith_title,
-        font=hadith_title_font,
-        fill="#014612",
+        (text_x, text_y),
+        line,
+        font=font_bold,
+        fill="white",
         stroke_width=5,
         stroke_fill="white",
     )
-    y += 100
 
-    # ==== آماده‌سازی متن حدیث و تقسیم به خطوط ====
-    max_text_width = image.width - 2 * 80  # حداکثر عرض مجاز هر خط حدیث
-    hadith_lines = wrap_text(hadith, font_bold, max_text_width, draw)
-
-    line_height = 38
-    line_spacing = 20  # فاصله بین خطوط
-    radius = 20        # شعاع گوشه‌های گرد
-
-    for i, line in enumerate(hadith_lines):
-        w, _ = draw.textbbox((0, 0), line, font=font_bold)[2:]
-        x = (image.width - w) // 2
-        rect_x1 = x - 20
-        rect_x2 = x + w + 20
-        rect_y1 = y + i * (line_height + line_spacing)
-        rect_y2 = rect_y1 + line_height
-
-        # رسم مستطیل بنفش با گوشه‌های گرد
-        draw.rounded_rectangle(
-            [rect_x1, rect_y1, rect_x2, rect_y2],
-            radius=radius,
-            fill="#800080"
-        )
-
-        # نوشتن متن حدیث در وسط مستطیل
-        draw.text(
-            (x, rect_y1 + (line_height - font_bold.size) // 2 + 5),
-            line,
-            font=font_bold,
-            fill="white",
-            stroke_width=5,
-            stroke_fill="#800080",
-        )
-
-    # اگر ادامه‌ای در پایین صفحه داشتی، y رو آپدیت کن
-    y = rect_y2 + 50
+    y += box_height + line_spacing
 
     # ==== ذخیره تصویر ====
     output_path = "output.png"
