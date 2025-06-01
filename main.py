@@ -90,15 +90,17 @@ def create_image_with_text():
     draw.text((x, y), text, font=font_bold, fill="white")
     y += h + 60
 
-    # ==== مستطیل و عنوان حدیث ====
+       # ==== مستطیل و عنوان حدیث (وسط‌چین) ====
     hadith_title = "حدیث"
     hadith_title_font = ImageFont.truetype(FONT_BLACK, 70)
     w, h = draw.textbbox((0, 0), hadith_title, font=hadith_title_font)[2:]
-    rect_w, rect_h = 300, 100
-    rect_x = (image.width - rect_w) // 2
-    draw.rectangle([rect_x, y, rect_x + rect_w, y + 80], fill="white")
+    hadith_title_x = (image.width - w) // 2
+    draw.rectangle(
+        [hadith_title_x - 20, y, hadith_title_x + w + 20, y + 80],
+        fill="white"
+    )
     draw.text(
-        ((image.width - w) // 2, y + 5),
+        (hadith_title_x, y + 5),
         hadith_title,
         font=hadith_title_font,
         fill="#014612",
@@ -107,12 +109,12 @@ def create_image_with_text():
     )
     y += 100
 
-    # ==== متن حدیث با پس‌زمینه بنفش ====
+    # ==== متن حدیث با پس‌زمینه بنفش (وسط‌چین کامل) ====
     line_spacing = 90
     total_height = line_spacing * len(hadith_lines)
-    margin_x = 60
+    padding_x = 60
     draw.rectangle(
-        [margin_x, y, image.width - margin_x, y + total_height + 30],
+        [padding_x, y, image.width - padding_x, y + total_height + 30],
         fill="#800080"
     )
     for i, line in enumerate(hadith_lines):
