@@ -108,9 +108,9 @@ async def main():
     await bot.delete_webhook()
     await bot.set_webhook(WEBHOOK_URL)
 
-    application.add_handler(application.handler_class("start", start_handler, filters=None))
+    application.add_handler(CommandHandler("start", start_handler))
 
-    # اجرای Flask
+    # اجرای Flask با hypercorn
     PORT = int(os.environ.get("PORT", 8000))
     from hypercorn.asyncio import serve
     from hypercorn.config import Config
@@ -118,6 +118,7 @@ async def main():
     config = Config()
     config.bind = [f"0.0.0.0:{PORT}"]
     await serve(app, config)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
