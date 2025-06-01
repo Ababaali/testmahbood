@@ -93,7 +93,8 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @app.route("/", methods=["POST"])
 async def telegram_webhook():
     try:
-        update = Update.de_json(await request.get_json(force=True), bot)
+        data = request.get_json(force=True)
+        update = Update.de_json(data, bot)
         await application.process_update(update)
     except Exception as e:
         await bot.send_message(chat_id=ADMIN_ID, text=f"❌ خطای اصلی وب‌هوک:\n{e}\n{traceback.format_exc()}")
