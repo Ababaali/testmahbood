@@ -80,7 +80,7 @@ async def send_image(chat_id=CHANNEL_ID):
     try:
         path = create_image_with_text()
         with open(path, "rb") as photo:
-            await bot.send_photo(chat_id=chat_id, photo=photo)
+            await bot.send_document(chat_id=chat_id, document=photo, filename="output.png")  # ⬅️ ارسال بدون فشرده‌سازی
     except Exception as e:
         await bot.send_message(chat_id=ADMIN_ID, text=f"❌ خطا در ارسال تصویر:\n{e}\n{traceback.format_exc()}")
 
