@@ -128,6 +128,9 @@ def loop_sender():
 
 threading.Thread(target=loop_sender, daemon=True).start()
 
-# ==== اجرای Flask ====
 if __name__ == "__main__":
+    bot.delete_webhook()  # اختیاریه: برای اطمینان از پاک بودن قبلی
+    bot.set_webhook(url=WEBHOOK_URL)  # این خیلی مهمه ✅
+    
+    PORT = int(os.environ.get("PORT", 8000))  # از رندر یا پیش‌فرض ۸۰۰۰
     app.run(host="0.0.0.0", port=PORT)
