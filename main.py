@@ -33,6 +33,10 @@ def get_random_hadith():
     with open("hadiths.txt", "r", encoding="utf-8") as f:
         hadiths = [h.strip() for h in f.readlines() if h.strip()]
     return random.choice(hadiths)
+HIJRI_MONTHS_FA = [
+    "محرم", "صفر", "ربیع‌الاول", "ربیع‌الثانی", "جمادی‌الاول", "جمادی‌الثانی",
+    "رجب", "شعبان", "رمضان", "شوال", "ذی‌القعده", "ذی‌الحجه"
+]
 
 # ==== ساخت تصویر ====
 def create_image_with_text():
@@ -44,7 +48,8 @@ def create_image_with_text():
     now = datetime.now(pytz.timezone("Asia/Tehran"))
     gregorian = now.strftime("%d %B %Y")
     hijri_obj = Gregorian(now.year, now.month, now.day).to_hijri()
-    hijri = f"{hijri_obj.day:02d} {hijri_obj.month_name('fa')} {hijri_obj.year}"
+    hijri_month_name = HIJRI_MONTHS_FA[hijri_obj.month - 1]
+    hijri = f"{hijri_obj.day:02d} {hijri_month_name} {hijri_obj.year}"
 
     jalali = now.strftime("%d %B %Y")  # در صورت استفاده از jdatetime دقیق‌تر میشه
 
