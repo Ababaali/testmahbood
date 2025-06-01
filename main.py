@@ -36,44 +36,95 @@ def get_random_hadith():
 
 # ==== ساخت تصویر ====
 def create_image_with_text():
-    image = Image.open("000.png").convert("RGBA")
+    # باز کردن و تغییر اندازه تصویر زمینه
+    image = Image.open("000.png").convert("RGBA").resize((1080, 1920))
     draw = ImageDraw.Draw(image)
 
+    # تاریخ‌ها
     now = datetime.now(pytz.timezone("Asia/Tehran"))
-    gregorian = now.strftime("%Y/%m/%d")
-    hijri = Gregorian(now.year, now.month, now.day).to_hijri().isoformat().replace("-", "/")
-    jalali = now.strftime("%Y/%m/%d")  # اختیاری: می‌تونی jdatetime استفاده کنی
+    gregorian = now.strftime("%d %B %Y")
+    hijri = Gregorian(now.year, now.month, now.day).to_hijri().strftime("%d %B %Y")
+    jalali = now.strftime("%d %B %Y")  # در صورت استفاده از jdatetime دقیق‌تر میشه
 
     hadith = get_random_hadith()
+    hadith_lines = hadith.split("\n")
 
+    # فونت‌ها
     font_black = ImageFont.truetype(FONT_BLACK, 70)
     font_bold = ImageFont.truetype(FONT_BOLD, 70)
 
-    draw.text((100, 50), "امروز", font=font_black, fill="white", stroke_width=5, stroke_fill="black")
-    draw.text((100, 150), f"تاریخ شمسی: {jalali}", font=font_bold, fill="white")
-    draw.text((100, 230), f"تاریخ قمری: {hijri}", font=font_bold, fill="white")
-    draw.text((100, 310), f"تاریخ میلادی: {gregorian}", font=font_bold, fill="white")
+    y = 100  # موقعیت Y شروع
 
+    # ==== کلمه «امروز» ====
+    text = "امروز"
+    w, h = draw.textbbox((0, 0), text, font=font_black)[2:]
+    x = (image.width - w) // 2
+    draw.text((x, y), text, font=font_black, fill="white")
+    y += h + 40
+
+    # ==== تاریخ شمسی ====
+    text = f"تاریخ شمسی: {jalali}"
+    w, h = draw.textbbox((0, 0), text, font=font_bold)[2:]
+    x = (image.width - w) // 2
+    draw.text((x, y), text, font=font_bold, fill="white")
+    y += h + 20
+
+    # ==== تاریخ قمری ====
+    text = f"تاریخ قمری: {hijri}"
+    w, h = draw.textbbox((0, 0), text, font=font_bold)[2:]
+    x = (image.width - w) // 2
+    draw.text((x, y), text, font=font_bold, fill="white")
+    y += h + 20
+
+    # ==== تاریخ میلادی ====
+    text = f"تاریخ میلادی: {gregorian}"
+    w, h = draw.textbbox((0, 0), text, font=font_bold)[2:]
+    x = (image.width - w) // 2
+    draw.text((x, y), text, font=font_bold, fill="white")
+    y += h + 60
+
+    # ==== مستطیل و عنوان حدیث ====
+    hadith_title = "حدیث"
     hadith_title_font = ImageFont.truetype(FONT_BLACK, 70)
-    hadith_text_font = ImageFont.truetype(FONT_BOLD, 70)
+    w, h = draw.textbbox((0, 0), hadith_title, font=hadith_title_font)[2:]
+    rect_w, rect_h = 300, 100
+    rect_x = (image.width - rect_w) // 2
+    draw.rectangle([rect_x, y, rect_x + rect_w, y + 80], fill="white")
+    draw.text(
+        ((image.width - w) // 2, y + 5),
+        hadith_title,
+        font=hadith_title_font,
+        fill="#014612",
+        stroke_width=5,
+        stroke_fill="white",
+    )
+    y += 100
 
-    w, h = draw.textbbox((0, 0), "حدیث", font=hadith_title_font)[2:]
-    draw.rectangle([100, 390, 100 + 300, 390 + 25], fill="white")
-    draw.text((100 + (300 - w) // 2, 392), "حدیث", font=hadith_title_font, fill="#014612", stroke_width=5, stroke_fill="white")
-
-    hadith_lines = hadith.split("\n")
-    y = 460
-    text_area_w = 1300
+    # ==== متن حدیث با پس‌زمینه بنفش ====
     line_spacing = 90
     total_height = line_spacing * len(hadith_lines)
-    draw.rectangle([90, y, 90 + text_area_w, y + total_height + 30], fill="#800080")
-
+    margin_x = 60
+    draw.rectangle(
+        [margin_x, y, image.width - margin_x, y + total_height + 30],
+        fill="#800080"
+    )
     for i, line in enumerate(hadith_lines):
-        draw.text((100, y + i * line_spacing), line, font=hadith_text_font, fill="white", stroke_width=5, stroke_fill="white")
+        w, _ = draw.textbbox((0, 0), line, font=font_bold)[2:]
+        x = (image.width - w) // 2
+        draw.text(
+            (x, y + i * line_spacing),
+            line,
+            font=font_bold,
+            fill="white",
+            stroke_width=5,
+            stroke_fill="white",
+        )
 
+    # ==== ذخیره تصویر ====
     output_path = "output.png"
     image.save(output_path)
     return output_path
+
 
 # ==== ارسال تصویر ====
 async def send_image(chat_id=CHANNEL_ID):
