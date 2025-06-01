@@ -12,6 +12,12 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 import pytz
 import asyncio
 
+# ==== اطلاعات ربات ====
+TOKEN = "7996297648:AAHBtbd6lGGQjUIOjDNRsqETIOCNUfPcU00"
+CHANNEL_ID = "-1002605751569"
+ADMIN_ID = 486475495
+WEBHOOK_URL = "https://testmahbood.onrender.com"
+
 
 # ==== ساخت اپلیکیشن تلگرام ====
 application = Application.builder().token(TOKEN).build()
