@@ -1,73 +1,87 @@
-from telegram.ext import Updater, CommandHandler
-from telegram import Bot
+from flask import Flask, request
+from telegram import Bot, Update
+from telegram.ext import Dispatcher, CommandHandler
 from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime
 import pytz
-import time
 import threading
+import time
 import os
 
-# توکن و آیدی کانال
+# اطلاعات ربات و کانال
 TOKEN = "7996297648:AAHBtbd6lGGQjUIOjDNRsqETIOCNUfPcU00"
 CHANNEL_ID = "-1002605751569"
-
-# مسیر فایل‌ها
-BACKGROUND_IMAGE = "clock.png"
 FONT_PATH = "Pinar-Black.ttf"
+BACKGROUND_IMAGE = "clock.png"
 FONT_SIZE = 100
+WEBHOOK_URL = "https://testmahbood.onrender.com"
 
+# راه‌اندازی Flask
+app = Flask(__name__)
 bot = Bot(token=TOKEN)
+dispatcher = Dispatcher(bot, None, use_context=True)
 
+# دریافت ساعت فعلی تهران
 def get_tehran_time():
-    tz = pytz.timezone('Asia/Tehran')
+    tz = pytz.timezone("Asia/Tehran")
     return datetime.now(tz).strftime("%H:%M")
 
+# ساخت عکس با ساعت درج‌شده
 def create_image_with_time():
     img = Image.open(BACKGROUND_IMAGE).convert("RGB")
     draw = ImageDraw.Draw(img)
     font = ImageFont.truetype(FONT_PATH, FONT_SIZE)
-
     time_text = get_tehran_time()
-    text_width, text_height = draw.textsize(time_text, font=font)
-    img_width, img_height = img.size
-    x = (img_width - text_width) / 2
-    y = (img_height - text_height) / 2
+
+    w, h = draw.textsize(time_text, font=font)
+    W, H = img.size
+    x = (W - w) / 2
+    y = (H - h) / 2
 
     draw.text((x, y), time_text, font=font, fill="white")
     output_path = "output.jpg"
     img.save(output_path)
     return output_path
 
+# ارسال عکس به کانال
 def send_clock_image():
     try:
-        img_path = create_image_with_time()
-        with open(img_path, "rb") as photo:
+        image_path = create_image_with_time()
+        with open(image_path, "rb") as photo:
             bot.send_photo(chat_id=CHANNEL_ID, photo=photo)
     except Exception as e:
-        print("خطا در ارسال تصویر:", e)
+        print("❌ خطا در ارسال تصویر:", e)
 
+# حلقه‌ی ارسال هر ۵ دقیقه
 def job_loop():
     while True:
         send_clock_image()
-        time.sleep(300)  # هر 5 دقیقه
+        time.sleep(300)
+
+job_thread = threading.Thread(target=job_loop)
+job_thread.daemon = True
 
 # دستور /start
 def start(update, context):
-    update.message.reply_text("سلام! شروع شد :)")
+    update.message.reply_text("سلام! ارسال ساعت شروع شد.")
     send_clock_image()
-    # فقط یک بار حلقه شروع بشه
     if not job_thread.is_alive():
         job_thread.start()
 
-# تنظیمات ربات
-updater = Updater(token=TOKEN, use_context=True)
-dispatcher = updater.dispatcher
+# ثبت هندلر
 dispatcher.add_handler(CommandHandler("start", start))
 
-# شروع حلقه ارسال دوره‌ای
-job_thread = threading.Thread(target=job_loop)
-job_thread.daemon = True  # خروج برنامه رو بلاک نکنه
+# روت وب‌هوک برای دریافت پیام‌ها
+@app.route("/", methods=["GET", "POST"])
+def webhook():
+    if request.method == "POST":
+        update = Update.de_json(request.get_json(force=True), bot)
+        dispatcher.process_update(update)
+    return "ok"
 
-# اجرا
-updater.start_polling()
-updater.idle()
+# ست کردن وب‌هوک و اجرای سرور
+if __name__ == "__main__":
+    bot.delete_webhook()
+    bot.set_webhook(url=WEBHOOK_URL)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
