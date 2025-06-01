@@ -8,11 +8,12 @@ from hijri_converter import Gregorian
 from telegram import Bot
 import pytz
 
-# ==== تنظیمات ====
-TOKEN = "توکن_ربات"
-CHANNEL_ID = "@your_channel_id"
-ADMIN_ID = 123456789  # عددی
-PORT = int(os.environ.get("PORT", 10000))
+# اطلاعات ربات و کانال
+TOKEN = "7996297648:AAHBtbd6lGGQjUIOjDNRsqETIOCNUfPcU00"
+CHANNEL_ID = "-1002605751569"     # آی‌دی کانال (با دقت بررسی شود)
+ADMIN_ID = 486475495      # آی‌دی عددی خودت برای دریافت خطاها
+WEBHOOK_URL = "https://testmahbood.onrender.com"
+
 
 bot = Bot(token=TOKEN)
 app = Flask(__name__)
