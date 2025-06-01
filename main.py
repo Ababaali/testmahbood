@@ -90,7 +90,7 @@ def create_image_with_text():
     draw.text((x, y), text, font=font_bold, fill="white")
     y += h + 60
 
-       # ==== مستطیل و عنوان حدیث (وسط‌چین) ====
+        # ==== مستطیل و عنوان حدیث (وسط‌چین) ====
     hadith_title = "حدیث"
     hadith_title_font = ImageFont.truetype(FONT_BLACK, 70)
     w, h = draw.textbbox((0, 0), hadith_title, font=hadith_title_font)[2:]
@@ -109,12 +109,15 @@ def create_image_with_text():
     )
     y += 100
 
-    # ==== متن حدیث با پس‌زمینه بنفش (وسط‌چین کامل) ====
+    # ==== آماده‌سازی متن حدیث و تقسیم به خطوط ====
+    max_text_width = image.width - 2 * 80  # 80 پیکسل حاشیه از چپ و راست
+    hadith_lines = wrap_text(hadith, font_bold, max_text_width, draw)
+
     line_spacing = 90
     total_height = line_spacing * len(hadith_lines)
-    padding_x = 60
+
     draw.rectangle(
-        [padding_x, y, image.width - padding_x, y + total_height + 30],
+        [80, y, image.width - 80, y + total_height + 30],
         fill="#800080"
     )
     for i, line in enumerate(hadith_lines):
@@ -128,6 +131,7 @@ def create_image_with_text():
             stroke_width=5,
             stroke_fill="white",
         )
+
 
     # ==== ذخیره تصویر ====
     output_path = "output.png"
