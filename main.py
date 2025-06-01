@@ -12,11 +12,6 @@ from telegram.ext import Application, CommandHandler, ContextTypes
 import pytz
 import asyncio
 
-# ==== اطلاعات ربات ====
-TOKEN = "7996297648:AAHBtbd6lGGQjUIOjDNRsqETIOCNUfPcU00"
-CHANNEL_ID = "-1002605751569"
-ADMIN_ID = 486475495
-WEBHOOK_URL = "https://testmahbood.onrender.com"
 
 # ==== ساخت اپلیکیشن تلگرام ====
 application = Application.builder().token(TOKEN).build()
@@ -110,12 +105,7 @@ def create_image_with_text():
     y += h + 60
 
     # ==== عنوان حدیث با مستطیل گرد ====
-    hadith_title = "حدیث"
-    hadith_title_font = ImageFont.truetype(FONT_BLACK, 70)
-    title_text_width, title_text_height = draw.textbbox((0, 0), hadith_title, font=hadith_title_font)[2:]
-    title_x = (image.width - title_text_width) // 2
-    title_y = y
-    radius = 20
+    
 
     draw.rounded_rectangle(
         [title_x - 30, title_y - 10, title_x + title_text_width + 30, title_y + title_text_height + 10],
