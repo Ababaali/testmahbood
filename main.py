@@ -168,10 +168,9 @@ for line in hadith_lines:
     y += box_height + line_spacing
 
     # ==== ذخیره تصویر ====
-    output_path = "output.png"
-    image.save(output_path)
-    return output_path
-
+output_path = "output.png"
+image.save(output_path)
+return output_path
 
 # ==== ارسال تصویر ====
 async def send_image(chat_id=CHANNEL_ID):
