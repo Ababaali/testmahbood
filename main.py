@@ -53,7 +53,7 @@ def wrap_text(text, font, max_width, draw):
         lines.append(line)
     return lines
 
-# ==== ساخت تصویر ====
+
 def create_image_with_text():
     # باز کردن و تغییر اندازه تصویر زمینه
     image = Image.open("000.png").convert("RGBA").resize((1080, 1920))
@@ -65,11 +65,9 @@ def create_image_with_text():
     hijri_obj = Gregorian(now.year, now.month, now.day).to_hijri()
     hijri_month_name = HIJRI_MONTHS_FA[hijri_obj.month - 1]
     hijri = f"{hijri_obj.day:02d} {hijri_month_name} {hijri_obj.year}"
-
-    jalali = now.strftime("%d %B %Y")  # در صورت استفاده از jdatetime دقیق‌تر میشه
+    jalali = now.strftime("%d %B %Y")  # جایگزینی با jdatetime در صورت نیاز
 
     hadith = get_random_hadith()
-    hadith_lines = hadith.split("\n")
 
     # فونت‌ها
     font_black = ImageFont.truetype(FONT_BLACK, 70)
@@ -105,72 +103,70 @@ def create_image_with_text():
     draw.text((x, y), text, font=font_bold, fill="white")
     y += h + 60
 
-          # ==== عنوان حدیث با مستطیل گرد (وسط‌چین دقیق) ====
-hadith_title = "حدیث"
-hadith_title_font = ImageFont.truetype(FONT_BLACK, 70)
-title_text_width, title_text_height = draw.textbbox((0, 0), hadith_title, font=hadith_title_font)[2:]
-title_x = (image.width - title_text_width) // 2
-title_y = y
+    # ==== عنوان حدیث با مستطیل گرد ====
+    hadith_title = "حدیث"
+    hadith_title_font = ImageFont.truetype(FONT_BLACK, 70)
+    title_text_width, title_text_height = draw.textbbox((0, 0), hadith_title, font=hadith_title_font)[2:]
+    title_x = (image.width - title_text_width) // 2
+    title_y = y
+    radius = 20
 
-# مستطیل سفید با گوشه‌های گرد دور کلمه "حدیث"
-radius = 20
-draw.rounded_rectangle(
-    [title_x - 30, title_y - 10, title_x + title_text_width + 30, title_y + 28.14 + 10],
-    radius=radius,
-    fill="white"
-)
-
-# رسم کلمه حدیث
-draw.text(
-    (title_x, title_y),
-    hadith_title,
-    font=hadith_title_font,
-    fill="#014612",
-    stroke_width=5,
-    stroke_fill="white",
-)
-
-y += 120  # فاصله از عنوان حدیث تا اولین خط حدیث
-
-# ==== رسم حدیث خط به خط با مستطیل دور متن ====
-max_text_width = image.width - 160  # حاشیه چپ و راست
-hadith_lines = wrap_text(hadith, font_bold, max_text_width, draw)
-
-line_height = 38
-line_spacing = 40  # فاصله عمودی بین خطوط
-box_padding_x = 20
-box_padding_y = 5
-corner_radius = 30
-
-for line in hadith_lines:
-    text_width, text_height = draw.textbbox((0, 0), line, font=font_bold)[2:]
-    box_width = text_width + 2 * box_padding_x
-    box_height = line_height
-
-    x = (image.width - box_width) // 2
     draw.rounded_rectangle(
-        [x, y, x + box_width, y + box_height],
-        radius=corner_radius,
-        fill="#800080"
+        [title_x - 30, title_y - 10, title_x + title_text_width + 30, title_y + title_text_height + 10],
+        radius=radius,
+        fill="white"
     )
 
-    text_x = (image.width - text_width) // 2
-    text_y = y + (box_height - text_height) // 2
     draw.text(
-        (text_x, text_y),
-        line,
-        font=font_bold,
-        fill="white",
+        (title_x, title_y),
+        hadith_title,
+        font=hadith_title_font,
+        fill="#014612",
         stroke_width=5,
         stroke_fill="white",
     )
 
-    y += box_height + line_spacing
+    y += 120  # فاصله از عنوان حدیث تا اولین خط حدیث
+
+    # ==== رسم حدیث خط به خط با مستطیل دور ====
+    max_text_width = image.width - 160
+    hadith_lines = wrap_text(hadith, font_bold, max_text_width, draw)
+
+    line_height = 38
+    line_spacing = 40
+    box_padding_x = 20
+    box_padding_y = 5
+    corner_radius = 30
+
+    for line in hadith_lines:
+        text_width, text_height = draw.textbbox((0, 0), line, font=font_bold)[2:]
+        box_width = text_width + 2 * box_padding_x
+        box_height = line_height
+
+        x = (image.width - box_width) // 2
+        draw.rounded_rectangle(
+            [x, y, x + box_width, y + box_height],
+            radius=corner_radius,
+            fill="#800080"
+        )
+
+        text_x = (image.width - text_width) // 2
+        text_y = y + (box_height - text_height) // 2
+        draw.text(
+            (text_x, text_y),
+            line,
+            font=font_bold,
+            fill="white",
+            stroke_width=5,
+            stroke_fill="white",
+        )
+
+        y += box_height + line_spacing
 
     # ==== ذخیره تصویر ====
-output_path = "output.png"
-image.save(output_path)
-return output_path
+    output_path = "output.png"
+    image.save(output_path)
+    return output_path
 
 # ==== ارسال تصویر ====
 async def send_image(chat_id=CHANNEL_ID):
