@@ -119,14 +119,7 @@ def create_image_with_text():
         fill="white"
     )
 
-    draw.text(
-        (title_x, title_y),
-        hadith_title,
-        font=hadith_title_font,
-        fill="#014612",
-        stroke_width=5,
-        stroke_fill="white",
-    )
+   
 
     y += 160  # فاصله از عنوان حدیث تا اولین خط حدیث
 
