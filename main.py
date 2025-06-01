@@ -12,7 +12,7 @@ import pytz
 TOKEN = "7996297648:AAHBtbd6lGGQjUIOjDNRsqETIOCNUfPcU00"
 CHANNEL_ID = "-1002605751569"     # آی‌دی کانال (با دقت بررسی شود)
 ADMIN_ID = 486475495      # آی‌دی عددی خودت برای دریافت خطاها
-WEBHOOK_URL = "https://testmahbood.onrender.com"
+
 
 
 bot = Bot(token=TOKEN)
@@ -129,8 +129,10 @@ def loop_sender():
 threading.Thread(target=loop_sender, daemon=True).start()
 
 if __name__ == "__main__":
-    bot.delete_webhook()  # اختیاریه: برای اطمینان از پاک بودن قبلی
-    bot.set_webhook(url=WEBHOOK_URL)  # این خیلی مهمه ✅
-    
-    PORT = int(os.environ.get("PORT", 8000))  # از رندر یا پیش‌فرض ۸۰۰۰
+    WEBHOOK_URL = "https://testmahbood.onrender.com"
+
+    bot.delete_webhook()  # اختیاریه
+    bot.set_webhook(url=WEBHOOK_URL)  # ست کردن وب‌هوک
+
+    PORT = int(os.environ.get("PORT", 8000))  # از محیط یا پیش‌فرض ۸۰۰۰
     app.run(host="0.0.0.0", port=PORT)
