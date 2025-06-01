@@ -37,7 +37,8 @@ def create_image_with_time():
         font = ImageFont.truetype(FONT_PATH, FONT_SIZE)
         time_text = get_tehran_time()
 
-        w, h = draw.textsize(time_text, font=font)
+        bbox = draw.textbbox((0, 0), time_text, font=font)
+        w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
         W, H = img.size
         x = (W - w) / 2
         y = (H - h) / 2
@@ -46,12 +47,10 @@ def create_image_with_time():
         output_path = "output.jpg"
         img.save(output_path)
         return output_path
-
     except Exception as e:
-        error_text = f"❌ خطا در ساخت تصویر:\n{str(e)}"
-        bot.send_message(chat_id=ADMIN_ID, text=error_text)
-        bot.send_message(chat_id=ADMIN_ID, text=traceback.format_exc())
+        print("❌ خطا در ساخت تصویر:", e)
         raise e
+
 
 # ارسال تصویر به کانال
 def send_clock_image():
