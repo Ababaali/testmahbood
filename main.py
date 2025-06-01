@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont
 from hijri_converter import Gregorian
 from telegram import Bot, Update
 from telegram.constants import ParseMode
-from telegram.ext import Application, ContextTypes
+from telegram.ext import Application, CommandHandler, ContextTypes
 import pytz
 import asyncio
 
