@@ -125,11 +125,11 @@ def create_image_with_text():
         box_height = line_height
 
         x = (image.width - box_width) // 2
-        draw.rounded_rectangle([x, y, x + box_width, y + box_height], radius=corner_radius, fill="#800080")
+        draw.rounded_rectangle([x, y, x + box_width, y + box_height], radius=corner_radius, fill="#10024a")
 
         text_x = (image.width - text_width) // 2
         text_y = y + (box_height - text_height) // 2
-        draw.text((text_x, text_y), line, font=font_bold, fill="white", stroke_width=5, stroke_fill="#800080")
+        draw.text((text_x, text_y), line, font=font_bold, fill="white", stroke_width=5, stroke_fill="#10024a")
 
         y += box_height + line_spacing
 
@@ -140,11 +140,11 @@ def create_image_with_text():
         box_height = line_height
 
         x = (image.width - box_width) // 2
-        draw.rounded_rectangle([x, y, x + box_width, y + box_height], radius=corner_radius, fill="#0e2d33")
+        draw.rounded_rectangle([x, y, x + box_width, y + box_height], radius=corner_radius, fill="#f5ce00")
 
         text_x = (image.width - text_width) // 2
         text_y = y + (box_height - text_height) // 2
-        draw.text((text_x, text_y), line, font=font_bold, fill="white", stroke_width=5, stroke_fill="#0e2d33")
+        draw.text((text_x, text_y), line, font=font_bold, fill="white", stroke_width=5, stroke_fill="#f5ce00")
 
         y += box_height + line_spacing
 
