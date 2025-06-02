@@ -1,216 +1,141 @@
 import os
-import random
-import traceback
+import logging
 from flask import Flask, request
-from datetime import datetime
-from khayyam import JalaliDate
-from PIL import Image, ImageDraw, ImageFont
-from hijri_converter import Gregorian
-from telegram import Bot, Update
-from telegram.constants import ParseMode
-from telegram.ext import Application, CommandHandler, ContextTypes
-import pytz
-import asyncio
+import telegram
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Dispatcher, CommandHandler, CallbackQueryHandler
+from khayyam import JalaliDatetime
+from datetime import datetime, timedelta
+import requests
+import json
 
+# --- تنظیمات اصلی ---
 # ==== اطلاعات ربات ====
 TOKEN = "7996297648:AAHBtbd6lGGQjUIOjDNRsqETIOCNUfPcU00"
 CHANNEL_ID = "-1002605751569"
 ADMIN_ID = 486475495
 WEBHOOK_URL = "https://testmahbood.onrender.com/"
+SEND_HOUR = 8
 
-# ==== ساخت اپلیکیشن تلگرام ====
-application = Application.builder().token(TOKEN).build()
-bot: Bot = application.bot
 
-# ==== Flask ====
+
+
+# --- ربات و فلَسک ---
+bot = telegram.Bot(token=TOKEN)
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
 
-# ==== فونت‌ها ====
-FONT_BLACK = "Pinar-DS3-FD-Black.ttf"
-FONT_BOLD = "Pinar-DS3-FD-Bold.ttf"
+dispatcher = Dispatcher(bot, None, workers=0, use_context=True)
 
-# ==== خواندن حدیث ====
-def get_random_hadith():
-    with open("hadiths.txt", "r", encoding="utf-8") as f:
-        lines = [line.strip() for line in f.readlines() if line.strip()]
-    hadith_pairs = [(lines[i], lines[i+1]) for i in range(0, len(lines) - 1, 2)]
-    return random.choice(hadith_pairs)
+# --- دیتابیس ساده ---
+DATA_FILE = "data.json"
+def load_data():
+    if not os.path.exists(DATA_FILE):
+        return {"index": 0}
+    with open(DATA_FILE) as f:
+        return json.load(f)
 
-HIJRI_MONTHS_FA = [
-    "محرم", "صفر", "ربیع‌الاول", "ربیع‌الثانی", "جمادی‌الاول", "جمادی‌الثانی",
-    "رجب", "شعبان", "رمضان", "شوال", "ذی‌القعده", "ذی‌الحجه"
-]
+def save_data(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f)
 
-def wrap_text(text, font, max_width, draw):
-    lines = []
-    words = text.split()
-    line = ""
-    for word in words:
-        test_line = f"{line} {word}".strip()
-        w, _ = draw.textbbox((0, 0), test_line, font=font)[2:]
-        if w <= max_width:
-            line = test_line
-        else:
-            lines.append(line)
-            line = word
-    if line:
-        lines.append(line)
-    return lines
+# --- مدیریت احادیث ---
+HADITH_FILE = "hadith.txt"
+def get_next_hadith():
+    data = load_data()
+    with open(HADITH_FILE, encoding="utf-8") as f:
+        hadiths = f.read().strip().split("\n\n")
+    index = data.get("index", 0)
+    if index >= len(hadiths):
+        index = 0
+    data["index"] = index + 1
+    save_data(data)
+    return hadiths[index].strip()
 
-def create_image_with_text():
-    image = Image.open("000.png").convert("RGBA").resize((1080, 1920))
-    draw = ImageDraw.Draw(image)
+# --- تولید تصویر حدیث ---
+def generate_image():
+    from PIL import Image, ImageDraw, ImageFont
 
-    now = datetime.now(pytz.timezone("Asia/Tehran"))
-    gregorian = now.strftime("%d %B %Y")
-    hijri_obj = Gregorian(now.year, now.month, now.day).to_hijri()
-    hijri_month_name = HIJRI_MONTHS_FA[hijri_obj.month - 1]
-    hijri = f"{hijri_obj.day:02d} {hijri_month_name} {hijri_obj.year}"
-    jalali = JalaliDate.today().strftime("%d %B %Y")
+    today = datetime.now()
+    jalali = JalaliDatetime(today).strftime("%A %d %B %Y")
+    gregorian = today.strftime("%A %d %B %Y")
+    hijri = requests.get(f"http://api.aladhan.com/v1/gToH?date={today.strftime('%d-%m-%Y')}").json()["data"]["hijri"]["date"]
+    hadith = get_next_hadith()
 
-    hadith_fa, hadith_tr = get_random_hadith()
+    img = Image.open("000.png").convert("RGB").resize((1080, 1920))
 
-    font_black = ImageFont.truetype(FONT_BLACK, 70)
-    font_bold = ImageFont.truetype(FONT_BOLD, 70)
+    
+    def load_font(name, size):
+        return ImageFont.truetype(f"fonts/{name}.ttf", size)
 
-    y = 100
-    # "امروز"
-    text = "امروز"
-    w, h = draw.textbbox((0, 0), text, font=font_black)[2:]
-    x = (image.width - w) // 2
-    draw.text((x, y), text, font=font_black, fill="white")
-    y += h + 40
+    draw.text((50, 50), "امروز", font=load_font("Pinar-DS3-FD-Black", 70), fill="white")
+    draw.text((50, 150), f"شمسی: {jalali}", font=load_font("Pinar-DS3-FD-Bold", 70), fill="white")
+    draw.text((50, 250), f"میلادی: {gregorian}", font=load_font("Pinar-DS3-FD-Bold", 70), fill="white")
+    draw.text((50, 350), f"قمری: {hijri}", font=load_font("Pinar-DS3-FD-Bold", 70), fill="white")
 
-    # تاریخ شمسی
-    text = jalali
-    w, h = draw.textbbox((0, 0), text, font=font_bold)[2:]
-    x = (image.width - w) // 2
-    draw.text((x, y), text, font=font_bold, fill="white")
-    y += h + 20
+    draw.rectangle((50, 460, 350, 490), fill="white")
+    draw.text((60, 460), "حدیث", font=load_font("Pinar-DS3-FD-Black", 70), fill="#014612")
 
-    # تاریخ قمری
-    text = hijri
-    w, h = draw.textbbox((0, 0), text, font=font_bold)[2:]
-    x = (image.width - w) // 2
-    draw.text((x, y), text, font=font_bold, fill="white")
-    y += h + 20
+    draw.rectangle((50, 520, 1030, 1000), fill="#800080")
+    draw.text((70, 540), hadith, font=load_font("Pinar-DS3-FD-Bold", 50), fill="white")
 
-    # تاریخ میلادی
-    text = gregorian
-    w, h = draw.textbbox((0, 0), text, font=font_bold)[2:]
-    x = (image.width - w) // 2
-    draw.text((x, y), text, font=font_bold, fill="white")
-    y += h + 60
+    path = "output.jpg"
+    img.save(path)
+    return path
 
-    y += 160
-
-    max_text_width = image.width - 160
-
-    hadith_fa = hadith_fa.strip(" .●ـ*-–—")
-    hadith_tr = hadith_tr.strip(" .●ـ*-–—")
-
-    hadith_lines_fa = wrap_text(hadith_fa, font_bold, max_text_width, draw)
-    hadith_lines_tr = wrap_text(hadith_tr, font_bold, max_text_width, draw)
-
-    line_height = 38
-    line_spacing = 60
-    box_padding_x = 20
-    box_padding_y = 5
-    corner_radius = 30
-
-    # حدیث فارسی با مستطیل بنفش
-    for line in hadith_lines_fa:
-        text_width, text_height = draw.textbbox((0, 0), line, font=font_bold)[2:]
-        box_width = text_width + 2 * box_padding_x
-        box_height = line_height
-
-        x = (image.width - box_width) // 2
-        draw.rounded_rectangle([x, y, x + box_width, y + box_height], radius=corner_radius, fill="#10024a")
-
-        text_x = (image.width - text_width) // 2
-        text_y = y + (box_height - text_height) // 2
-        draw.text((text_x, text_y), line, font=font_bold, fill="white", stroke_width=5, stroke_fill="#10024a")
-
-        y += box_height + line_spacing
-
-    # ترجمه با مستطیل رنگ خاص
-    for line in hadith_lines_tr:
-        text_width, text_height = draw.textbbox((0, 0), line, font=font_bold)[2:]
-        box_width = text_width + 2 * box_padding_x
-        box_height = line_height
-
-        x = (image.width - box_width) // 2
-        draw.rounded_rectangle([x, y, x + box_width, y + box_height], radius=corner_radius, fill="#f5ce00")
-
-        text_x = (image.width - text_width) // 2
-        text_y = y + (box_height - text_height) // 2
-        draw.text((text_x, text_y), line, font=font_bold, fill="#10024a", stroke_width=5, stroke_fill="#f5ce00")
-
-        y += box_height + line_spacing
-
-    output_path = "output.png"
-    image.save(output_path)
-    return output_path
-
-async def send_image(chat_id=CHANNEL_ID):
+# --- ارسال پست روزانه ---
+def send_daily():
     try:
-        path = create_image_with_text()
-        with open(path, "rb") as photo:
-            await bot.send_photo(chat_id=chat_id, photo=photo)  # ارسال با send_photo
+        image_path = generate_image()
+        bot.send_photo(chat_id=CHANNEL_ID, photo=open(image_path, "rb"), reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("📤 دریافت تصویر", switch_inline_query="share_today")]
+        ]))
     except Exception as e:
-        await bot.send_message(chat_id=ADMIN_ID, text=f"❌ خطا در ارسال تصویر:\n{e}\n{traceback.format_exc()}")
+        logging.error(f"خطا در ارسال روزانه: {e}")
 
-# هندلر /start
-async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("✅ ربات ساعت حدیث فعال است.")
-    await send_image(chat_id=update.effective_chat.id)
+# --- پنل ادمین ---
+def admin(update, context):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    buttons = [
+        [InlineKeyboardButton("📈 آمار ارسال‌ها", callback_data="stats")],
+        [InlineKeyboardButton("🔮 دیدن پست فردا", callback_data="preview")],
+        [InlineKeyboardButton("🔄 بازنشانی شمارنده", callback_data="reset")],
+        [InlineKeyboardButton("⚙️ تنظیمات (غیرفعال)", callback_data="settings")]
+    ]
+    update.message.reply_text("پنل مدیریت:", reply_markup=InlineKeyboardMarkup(buttons))
 
-# وب‌هوک تلگرام
-@app.route("/", methods=["POST"])
-async def telegram_webhook():
-    try:
-        data = request.get_json(force=True)
-        update = Update.de_json(data, bot)
-        await application.process_update(update)  # فقط process_update بدون initialize و start_polling
-    except Exception as e:
-        await bot.send_message(chat_id=ADMIN_ID, text=f"❌ خطای اصلی وب‌هوک:\n{e}\n{traceback.format_exc()}")
+def callback_handler(update, context):
+    query = update.callback_query
+    query.answer()
+    data = load_data()
+    with open(HADITH_FILE, encoding="utf-8") as f:
+        total = len(f.read().strip().split("\n\n"))
+    
+    if query.data == "stats":
+        query.edit_message_text(f"تا حالا {data['index']} حدیث ارسال شده.\n{total - data['index']} حدیث باقی‌مانده.")
+    elif query.data == "preview":
+        image = generate_image()
+        bot.send_photo(chat_id=ADMIN_ID, photo=open(image, "rb"), caption="پیش‌نمایش پست فردا")
+    elif query.data == "reset":
+        save_data({"index": 0})
+        query.edit_message_text("شمارنده ریست شد.")
+    else:
+        query.edit_message_text("این گزینه هنوز فعال نیست.")
+
+# --- هندلرها ---
+dispatcher.add_handler(CommandHandler("admin", admin))
+dispatcher.add_handler(CallbackQueryHandler(callback_handler))
+
+@app.route(f"/{TOKEN}", methods=["POST"])
+def webhook():
+    dispatcher.process_update(telegram.Update.de_json(request.get_json(force=True), bot))
     return "ok"
 
-@app.route("/", methods=["GET", "HEAD"])
-def home():
-    return "Bot is running!"
-@app.route("/uptime")
-def uptime():
-    return "✅ I'm alive!", 200
+@app.route("/")
+def index():
+    return "ربات حدیث فعال است"
 
-
-async def send_image_periodically():
-    await asyncio.sleep(10)  # استارت با کمی تاخیر برای اطمینان
-    while True:
-        await send_image()
-        await asyncio.sleep(1800)  # هر 30 دقیقه
-
-async def main():
-    await bot.delete_webhook()
-    await bot.set_webhook(WEBHOOK_URL)
-
-    application.add_handler(CommandHandler("start", start_handler))
-
-    await application.initialize()  # 👈 این خط را اضافه کن
-
-    # اجرای تسک ارسال تصویر دوره‌ای در پس‌زمینه
-    asyncio.create_task(send_image_periodically())
-
-    # اجرای Flask با hypercorn
-    PORT = int(os.environ.get("PORT", 8000))
-    from hypercorn.asyncio import serve
-    from hypercorn.config import Config
-
-    config = Config()
-    config.bind = [f"0.0.0.0:{PORT}"]
-
-    await serve(app, config)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+if __name__ == '__main__':
+    bot.set_webhook(url=WEBHOOK_URL + f"/{TOKEN}")
+    app.run(debug=True)
