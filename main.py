@@ -144,7 +144,7 @@ def create_image_with_text():
 
         text_x = (image.width - text_width) // 2
         text_y = y + (box_height - text_height) // 2
-        draw.text((text_x, text_y), line, font=font_bold, fill="white", stroke_width=5, stroke_fill="#f5ce00")
+        draw.text((text_x, text_y), line, font=font_bold, fill="#10024a", stroke_width=5, stroke_fill="#f5ce00")
 
         y += box_height + line_spacing
 
