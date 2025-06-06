@@ -13,6 +13,7 @@ from PIL import Image, ImageDraw, ImageFont
 from textwrap import wrap
 from hijri_converter import Gregorian
 from apscheduler.schedulers.background import BackgroundScheduler
+from datetime import datetime, timedelta
 import pytz
 
 # --- تنظیمات اصلی ---
@@ -398,6 +399,31 @@ yun.ir/Taranomejavani_bale"""
 
             bot.send_photo(chat_id=ADMIN_ID, photo=open(image_path, "rb"), caption=caption_text)
             os.remove(image_path)
+
+            # --- اضافه کردن پیام زمان باقیمانده ---
+            next_run = get_next_run_time() # فراخوانی تابع جدید
+            now_tehran = datetime.now(pytz.timezone("Asia/Tehran")) # زمان فعلی در تهران
+            
+            time_until_next_run = next_run - now_tehran
+            
+            # تبدیل به ساعت و دقیقه
+            total_seconds = int(time_until_next_run.total_seconds())
+            
+            # اگر زمان منفی شد، یعنی ساعت 8 صبح رد شده و باید برای فردا باشد
+            # این بخش اطمینان می‌دهد که همیشه زمان مثبتی را نشان می‌دهد
+            if total_seconds < 0:
+                next_run = next_run + timedelta(days=1)
+                time_until_next_run = next_run - now_tehran
+                total_seconds = int(time_until_next_run.total_seconds())
+
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+
+            # ساخت پیام نهایی
+            remaining_message = f"زمان آپلود در کانال ترنم:\nدر **{hours} ساعت** و **{minutes} دقیقه** دیگر"
+            
+            bot.send_message(chat_id=ADMIN_ID, text=remaining_message, parse_mode=telegram.ParseMode.MARKDOWN)
+
         except Exception as e:
             logging.error(f"خطا در تولید یا ارسال پیش‌نمایش در callback: {e}")
             query.edit_message_text("خطا در تولید یا ارسال پیش‌نمایش. لاگ‌ها را بررسی کنید.")
@@ -406,6 +432,22 @@ yun.ir/Taranomejavani_bale"""
         query.edit_message_text("شمارنده ریست شد.")
     else:
         query.edit_message_text("این گزینه هنوز فعال نیست.")
+
+def get_next_run_time():
+    tehran_tz = pytz.timezone("Asia/Tehran")
+    now_tehran = datetime.now(tehran_tz)
+
+    # زمان هدف (8 صبح امروز)
+    target_time_today = now_tehran.replace(hour=8, minute=0, second=0, microsecond=0)
+
+    # اگر الان بعد از 8 صبح است، هدف فرداست
+    if now_tehran >= target_time_today:
+        next_run = target_time_today + timedelta(days=1)
+    else:
+        # اگر قبل از 8 صبح است، هدف 8 صبح امروز است
+        next_run = target_time_today
+
+    return next_run        
 # --- هندلرها ---
 # --- هندلرها ---
 def start(update, context):
@@ -424,6 +466,7 @@ def webhook():
     return "ok"
 
 @app.route("/")
+
 def index():
     return "ربات حدیث فعال است"
 
