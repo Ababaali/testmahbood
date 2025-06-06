@@ -281,14 +281,53 @@ def generate_image():
     image.save(output_path)
     return output_path
 
+# برگرداندن مسیر عکس و همچنین متون برای استفاده در کپشن
+    return {
+        "image_path": output_path,
+        "jalali": jalali,
+        "hijri": hijri,
+        "gregorian": gregorian,
+        "hadith_fa": hadith_fa,
+        "hadith_tr": hadith_tr
+    }
 
 # --- ارسال پست روزانه (هنوز نیازمند زمانبند خارجی) ---
 def send_daily():
     try:
-        image_path = generate_image()
-        bot.send_photo(chat_id=CHANNEL_ID, photo=open(image_path, "rb"), reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("📤 دریافت تصویر", switch_inline_query="share_today")]
-        ]))
+        # دریافت دیکشنری حاوی مسیر عکس و متون
+        image_data = generate_image()
+        image_path = image_data["image_path"]
+        jalali = image_data["jalali"]
+        hijri = image_data["hijri"]
+        gregorian = image_data["gregorian"]
+        hadith_fa = image_data["hadith_fa"]
+        hadith_tr = image_data["hadith_tr"]
+
+        # ساخت کپشن
+        caption_text = f"""امروز
+🗓 {jalali}
+🌙 {hijri}
+✝️ {gregorian}
+
+متن فارسی:
+{hadith_fa}
+
+متن انگلیسی:
+{hadith_tr}
+
+┈••✾•🍃🍃🍃•✾••┈•
+
+🎓 مهـــم‌ترین اخبـــار دانشجـــویی 
+‌دانشگـــاه هاے استـــــان سمنـــــان‌
+را دراینجــــا مشــاهده فرمــــــایید.
+yun.ir/Taranomejavani_eitaa
+yun.ir/Taranomejavani_tel
+yun.ir/Taranomejavani_bale"""
+
+        bot.send_photo(chat_id=CHANNEL_ID, photo=open(image_path, "rb"), caption=caption_text,
+                       reply_markup=InlineKeyboardMarkup([
+                           [InlineKeyboardButton("📤 دریافت تصویر", switch_inline_query="share_today")]
+                       ]))
         os.remove(image_path)
         logging.info("Daily hadith sent successfully.")
     except Exception as e:
@@ -327,8 +366,36 @@ def callback_handler(update, context):
         query.edit_message_text(f"تا حالا {data.get('index', 0)} حدیث ارسال شده.\n{total - data.get('index', 0)} حدیث باقی‌مانده.")
     elif query.data == "preview":
         try:
-            image_path = generate_image()
-            bot.send_photo(chat_id=ADMIN_ID, photo=open(image_path, "rb"), caption="پیش‌نمایش پست فردا")
+            image_data = generate_image() # تغییر اینجا
+            image_path = image_data["image_path"]
+            jalali = image_data["jalali"]
+            hijri = image_data["hijri"]
+            gregorian = image_data["gregorian"]
+            hadith_fa = image_data["hadith_fa"]
+            hadith_tr = image_data["hadith_tr"]
+
+            # ساخت کپشن (همانند send_daily)
+            caption_text = f"""امروز
+🗓 {jalali}
+🌙 {hijri}
+✝️ {gregorian}
+
+متن فارسی:
+{hadith_fa}
+
+متن انگلیسی:
+{hadith_tr}
+
+┈••✾•🍃🍃🍃•✾••┈•
+
+🎓 مهـــم‌ترین اخبـــار دانشجـــویی 
+‌دانشگـــاه هاے استـــــان سمنـــــان‌
+را دراینجــــا مشــاهده فرمــــــایید.
+yun.ir/Taranomejavani_eitaa
+yun.ir/Taranomejavani_tel
+yun.ir/Taranomejavani_bale"""
+
+            bot.send_photo(chat_id=ADMIN_ID, photo=open(image_path, "rb"), caption=caption_text) # اضافه کردن caption
             os.remove(image_path)
         except Exception as e:
             logging.error(f"خطا در تولید یا ارسال پیش‌نمایش در callback: {e}")
