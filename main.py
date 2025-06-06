@@ -106,7 +106,7 @@ def get_next_hadith():
             english_text = lines[i+1] if (i+1) < len(lines) else ""
             
             # حذف پیشوند 
-            if persian_text.startswith("", 1)[1].strip()
+           
             # خط مشکل‌ساز "if persian_text.startswith("", 1)[1].strip()" اینجا حذف شده است.
             if english_text.startswith("", 1)[1].strip()
 
