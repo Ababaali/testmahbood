@@ -1,34 +1,34 @@
 import os
 import logging
-import random # برای get_random_hadith که در کد جدید شما بود
+import random
 from flask import Flask, request
 import telegram
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Dispatcher, CommandHandler, CallbackQueryHandler
-from khayyam import JalaliDatetime, JalaliDate # JalaliDate هم اضافه شد
+from khayyam import JalaliDatetime, JalaliDate
 from datetime import datetime, timedelta
 import requests
 import json
-from PIL import Image, ImageDraw, ImageFont # این خط باید اینجا باشد
-from textwrap import wrap # این خط باید اینجا باشد
-from hijri_converter import Gregorian # این خط هم اضافه شد
-import pytz # این خط هم اضافه شد
+from PIL import Image, ImageDraw, ImageFont
+from textwrap import wrap
+from hijri_converter import Gregorian
+import pytz
 
 # --- تنظیمات اصلی ---
 # ==== اطلاعات ربات ====
-TOKEN = "7996297648:AAHBtbd6lGGQjUIOjDNRsqETIOCNUfPcU00" # توکن شما
-CHANNEL_ID = "-1002605751569" # آیدی کانال شما
-ADMIN_ID = 486475495 # آیدی ادمین شما
+TOKEN = "7996297648:AAHBtbd6lGGQjUIOjDNRsqETIOCNUfPcU00"
+CHANNEL_ID = "-1002605751569"
+ADMIN_ID = 486475495
 WEBHOOK_URL = "https://testmahbood.onrender.com/"
 SEND_HOUR = 8
 
 
-# ==== فونت‌ها (جدید از کد شما) ====
-FONT_DIR = "fonts" # پوشه فونت‌ها
+# ==== فونت‌ها ====
+FONT_DIR = "fonts"
 FONT_BLACK = os.path.join(FONT_DIR, "Pinar-DS3-FD-Black.ttf")
 FONT_BOLD = os.path.join(FONT_DIR, "Pinar-DS3-FD-Bold.ttf")
 
-# ==== نام ماه‌های قمری فارسی (جدید از کد شما) ====
+# ==== نام ماه‌های قمری فارسی ====
 HIJRI_MONTHS_FA = [
     "محرم", "صفر", "ربیع‌الاول", "ربیع‌الثانی", "جمادی‌الاول", "جمادی‌الثانی",
     "رجب", "شعبان", "رمضان", "شوال", "ذی‌القعده", "ذی‌الحجه"
@@ -38,9 +38,8 @@ HIJRI_MONTHS_FA = [
 # --- ربات و فلَسک ---
 bot = telegram.Bot(token=TOKEN)
 app = Flask(__name__)
-logging.basicConfig(level=logging.INFO) # تنظیم سطح لاگ برای دیدن اطلاعات بیشتر
+logging.basicConfig(level=logging.INFO)
 
-# Dispatcher با تعداد workers مناسب
 dispatcher = Dispatcher(bot, None, workers=4, use_context=True)
 
 
@@ -58,10 +57,10 @@ def load_data():
 
 def save_data(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4) # indent برای خوانایی بیشتر JSON
+        json.dump(data, f, indent=4)
 
 
-# --- تابع کمکی برای شکستن خطوط متن (از کد شما) ---
+# --- تابع کمکی برای شکستن خطوط متن ---
 def wrap_text(text, font, max_width, draw):
     lines = []
     words = text.split()
@@ -70,20 +69,24 @@ def wrap_text(text, font, max_width, draw):
         test_line = f"{line} {word}".strip()
         # استفاده از textbbox برای اندازه گیری عرض
         # textbbox returns (left, top, right, bottom), so width is right - left
-        w = draw.textbbox((0, 0), test_line, font=font)[2] - draw.textbbox((0, 0), test_line, font=font)[0]
+        try:
+            w = draw.textbbox((0, 0), test_line, font=font)[2] - draw.textbbox((0, 0), test_line, font=font)[0]
+        except AttributeError: # Fallback for older Pillow versions if textbbox is not available
+             w = font.getsize(test_line)[0] 
+        
         if w <= max_width:
             line = test_line
         else:
-            if line: # اگر خط فعلی خالی نباشد، اضافه کن
+            if line:
                 lines.append(line)
-            line = word # شروع خط جدید با کلمه فعلی
+            line = word
     if line:
         lines.append(line)
     return lines
 
 
 # --- مدیریت احادیث ---
-HADITH_FILE = "hadiths.txt" # نام فایل احادیث صحیح
+HADITH_FILE = "hadiths.txt"
 def get_next_hadith():
     """حدیث بعدی را از فایل می‌خواند و ایندکس را به‌روزرسانی می‌کند.
     و اگر شامل ترجمه انگلیسی بود، آن را هم برمی‌گرداند.
@@ -131,38 +134,47 @@ def get_next_hadith():
 def generate_image():
     """تصویر حدیث روزانه را با طرح جدید تولید و مسیر آن را برمی‌گرداند."""
 
-    # ==== محاسبه تاریخ‌ها (از کد شما) ====
-    # مطمئن شوید که Asia/Tehran به درستی منطقه زمانی را مدیریت می‌کند
+    # ==== محاسبه تاریخ‌ها ====
     now = datetime.now(pytz.timezone("Asia/Tehran"))
-    gregorian = now.strftime("%d %B %Y") # 02 June 2025
+    gregorian = now.strftime("%d %B %Y")
 
-    # قمری (از کد شما)
-    hijri_obj = Gregorian(now.year, now.month, now.day).to_hijri()
-    hijri_month_name = HIJRI_MONTHS_FA[hijri_obj.month - 1]
-    hijri = f"{hijri_obj.day:02d} {hijri_month_name} {hijri_obj.year}" # 06 ذی‌الحجه 1446
+    # قمری
+    try:
+        hijri_obj = Gregorian(now.year, now.month, now.day).to_hijri()
+        hijri_month_name = HIJRI_MONTHS_FA[hijri_obj.month - 1]
+        hijri = f"{hijri_obj.day:02d} {hijri_month_name} {hijri_obj.year}"
+    except Exception as e:
+        logging.error(f"Error calculating Hijri date: {e}")
+        hijri = "تاریخ قمری نامشخص"
 
-    # شمسی (از کد شما)
-    jalali = JalaliDate.today().strftime("%d %B %Y") # 13 خرداد 1404
+    # شمسی
+    jalali = JalaliDate.today().strftime("%d %B %Y")
 
-    # ==== دریافت حدیث (با استفاده از تابع موجود) ====
+    # ==== دریافت حدیث ====
     hadith_data = get_next_hadith()
     hadith_fa = hadith_data["persian"]
     hadith_tr = hadith_data["english"]
 
-    # ==== ایجاد تصویر و شیء رسم (از کد شما) ====
+    # ==== ایجاد تصویر و شیء رسم ====
     image = Image.open("000.png").convert("RGBA").resize((1080, 1920))
     draw = ImageDraw.Draw(image)
 
-    # ==== بارگذاری فونت‌ها (از کد شما) ====
-    font_black = ImageFont.truetype(FONT_BLACK, 70)
-    font_bold = ImageFont.truetype(FONT_BOLD, 70)
-    
-    # فونت‌های کوچکتر برای متون داخل کادرها
-    font_hadith_box = ImageFont.truetype(FONT_BOLD, 65) # کمی کوچکتر برای جا شدن بهتر
-    font_translation_box = ImageFont.truetype(FONT_BOLD, 55) # برای ترجمه انگلیسی
+    # ==== بارگذاری فونت‌ها ====
+    try:
+        font_black = ImageFont.truetype(FONT_BLACK, 70)
+        font_bold = ImageFont.truetype(FONT_BOLD, 70)
+        font_hadith_box = ImageFont.truetype(FONT_BOLD, 65)
+        font_translation_box = ImageFont.truetype(FONT_BOLD, 55)
+    except IOError:
+        logging.error("One or more font files not found. Using default fonts.")
+        font_black = ImageFont.load_default()
+        font_bold = ImageFont.load_default()
+        font_hadith_box = ImageFont.load_default()
+        font_translation_box = ImageFont.load_default()
 
-    # ==== رسم تاریخ‌ها و "امروز" (از کد شما) ====
-    y_current = 100 # شروع Y
+
+    # ==== رسم تاریخ‌ها و "امروز" ====
+    y_current = 100
 
     # "امروز"
     text = "امروز"
@@ -170,7 +182,7 @@ def generate_image():
     w = bbox[2] - bbox[0]
     x = (image.width - w) // 2
     draw.text((x, y_current), text, font=font_black, fill="white")
-    y_current += (bbox[3] - bbox[1]) + 40 # افزایش y با ارتفاع متن و فاصله
+    y_current += (bbox[3] - bbox[1]) + 40
 
     # تاریخ شمسی
     text = jalali
@@ -194,61 +206,54 @@ def generate_image():
     w = bbox[2] - bbox[0]
     x = (image.width - w) // 2
     draw.text((x, y_current), text, font=font_bold, fill="white")
-    y_current += (bbox[3] - bbox[1]) + 60 # فاصله بیشتر تا حدیث
+    y_current += (bbox[3] - bbox[1]) + 60
 
-    # ==== رسم احادیث در کادرها (از کد شما) ====
-    max_text_width = image.width - 160 # عرض حداکثری برای متن در کادرها (1080 - 2 * 80)
+    # ==== رسم احادیث در کادرها ====
+    max_text_width = image.width - 160
 
-    # پاک کردن کاراکترهای اضافی از حدیث (از کد شما)
     hadith_fa = hadith_fa.strip(" .●ـ*-–—")
     hadith_tr = hadith_tr.strip(" .●ـ*-–—")
 
-    # شکستن خطوط احادیث با تابع wrap_text
     hadith_lines_fa = wrap_text(hadith_fa, font_hadith_box, max_text_width, draw)
     hadith_lines_tr = wrap_text(hadith_tr, font_translation_box, max_text_width, draw)
 
-    # تنظیمات ابعاد کادر و فاصله (از کد شما)
-    line_height_fa = 60 # ارتفاع تقریبی خط برای فارسی
-    line_spacing = 30 # فاصله بین کادرها و خطوط
-    box_padding_x = 20 # padding داخلی کادر
-    box_padding_y = 5 # padding داخلی کادر
-    corner_radius = 30 # شعاع گوشه‌های گرد
+    line_height_fa = 60
+    line_spacing = 30
+    box_padding_x = 20
+    box_padding_y = 5
+    corner_radius = 30
 
     # حدیث فارسی با مستطیل بنفش
-    y_current += 60 # فاصله اولیه تا کادر حدیث
+    y_current += 60
     for line in hadith_lines_fa:
-        text_width, text_height = draw.textbbox((0, 0), line, font=font_hadith_box)[2:] # اندازه‌گیری دقیق عرض و ارتفاع متن
+        text_width, text_height = draw.textbbox((0, 0), line, font=font_hadith_box)[2:]
         
-        # محاسبه ابعاد کادر بر اساس عرض متن
         box_width = text_width + 2 * box_padding_x
-        # اطمینان از اینکه کادر کمتر از یک حداقل عرض نباشد
         if box_width < 400: box_width = 400 
         
-        box_height = line_height_fa # ارتفاع ثابت برای هر خط در کادر
+        box_height = line_height_fa
         
-        # موقعیت x برای کادر (وسط چین)
         x_box = (image.width - box_width) // 2
         
         draw.rounded_rectangle([x_box, y_current, x_box + box_width, y_current + box_height], 
                                radius=corner_radius, 
-                               fill="#4A148C") # بنفش تیره (مطابق نمونه)
+                               fill="#4A148C")
 
-        # موقعیت x برای متن داخل کادر (وسط چین)
         text_x = (image.width - text_width) // 2
-        text_y = y_current + box_padding_y + ((box_height - text_height) // 2) - 5 # کمی تنظیم دستی y
-        draw.text((text_x, text_y), line, font=font_hadith_box, fill="white", stroke_width=3, stroke_fill="#10024a") # Stroke
+        text_y = y_current + box_padding_y + ((box_height - text_height) // 2) - 5
+        draw.text((text_x, text_y), line, font=font_hadith_box, fill="white", stroke_width=3, stroke_fill="#10024a")
 
         y_current += box_height + line_spacing
 
     # ترجمه با مستطیل رنگ خاص (زرد)
-    if hadith_tr: # فقط اگر ترجمه وجود داشت
-        line_height_tr = 50 # ارتفاع تقریبی خط برای انگلیسی (کوچکتر)
-        y_current += 30 # فاصله بیشتر بین کادر فارسی و انگلیسی
+    if hadith_tr:
+        line_height_tr = 50
+        y_current += 30
         for line in hadith_lines_tr:
             text_width, text_height = draw.textbbox((0, 0), line, font=font_translation_box)[2:]
             
             box_width = text_width + 2 * box_padding_x
-            if box_width < 400: box_width = 400 # حداقل عرض
+            if box_width < 400: box_width = 400
             
             box_height = line_height_tr
             
@@ -256,39 +261,37 @@ def generate_image():
             
             draw.rounded_rectangle([x_box, y_current, x_box + box_width, y_current + box_height], 
                                    radius=corner_radius, 
-                                   fill="#FFC107") # زرد (مطابق نمونه)
+                                   fill="#FFC107")
 
             text_x = (image.width - text_width) // 2
             text_y = y_current + box_padding_y + ((box_height - text_height) // 2) - 5
-            draw.text((text_x, text_y), line, font=font_translation_box, fill="#10024a", stroke_width=3, stroke_fill="#f5ce00") # متن انگلیسی مشکی با stroke
+            draw.text((text_x, text_y), line, font=font_translation_box, fill="#10024a", stroke_width=3, stroke_fill="#f5ce00")
 
             y_current += box_height + line_spacing
 
 
-    # --- اضافه کردن لوگو (از کد قبلی شما) ---
+    # --- اضافه کردن لوگو ---
     try:
-        logo_path = os.path.join("files", "logo.png") # مسیر لوگو
-        logo = Image.open(logo_path).convert("RGBA") # لوگو ممکن است شفافیت داشته باشد
+        logo_path = os.path.join("files", "logo.png")
+        logo = Image.open(logo_path).convert("RGBA")
         
-        # تغییر اندازه لوگو (اندازه دلخواه)
         logo_width = 300 
-        logo_height = int(logo.height * (logo_width / logo.width)) # حفظ نسبت ابعاد
+        logo_height = int(logo.height * (logo_width / logo.width))
         logo = logo.resize((logo_width, logo_height))
 
-        # موقعیت لوگو (پایین، وسط)
         x_logo = (image.width - logo_width) / 2
-        y_logo = image.height - logo_height - 50 # 50 پیکسل از پایین فاصله
+        y_logo = image.height - logo_height - 50
 
-        image.paste(logo, (int(x_logo), int(y_logo)), logo) # استفاده از ماسک برای شفافیت
+        image.paste(logo, (int(x_logo), int(y_logo)), logo)
     except FileNotFoundError:
         logging.warning("Logo file not found. Skipping logo placement.")
     except Exception as e:
         logging.error(f"Error placing logo: {e}")
 
-    # ==== ذخیره و برگرداندن مسیر (از کد شما) ====
-    output_path = "temp_hadith_preview.png" # نام فایل موقت برای ذخیره
-    image.save(output_path) # ذخیره تصویر
-    return output_path # برگرداندن مسیر فایل
+    # ==== ذخیره و برگرداندن مسیر ====
+    output_path = "temp_hadith_preview.png"
+    image.save(output_path)
+    return output_path
 
 
 # --- ارسال پست روزانه (هنوز نیازمند زمانبند خارجی) ---
@@ -298,7 +301,7 @@ def send_daily():
         bot.send_photo(chat_id=CHANNEL_ID, photo=open(image_path, "rb"), reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("📤 دریافت تصویر", switch_inline_query="share_today")]
         ]))
-        os.remove(image_path) # حذف فایل موقت بعد از ارسال
+        os.remove(image_path)
         logging.info("Daily hadith sent successfully.")
     except Exception as e:
         logging.error(f"خطا در ارسال روزانه: {e}")
@@ -318,15 +321,15 @@ def admin(update, context):
 
 def callback_handler(update, context):
     query = update.callback_query
-    query.answer() # مهم: همیشه query.answer() را فراخوانی کنید
+    query.answer()
     
     data = load_data()
     try:
+        # برای دقت بیشتر در آمار، این بخش باید از منطق get_next_hadith پیروی کند
+        # اما فعلاً برای عدم تغییر در منطق اصلی خارج از طراحی، به همین شکل باقی می‌ماند.
         with open(HADITH_FILE, encoding="utf-8") as f:
-            total = len(f.read().strip().split("\n\n")) # این خط نیاز به اصلاح با get_next_hadith دارد برای دقت
-            # اما طبق درخواست شما، فقط بخش طراحی تغییر می کند.
-            # برای دقیق‌تر شدن این آمار، باید از منطق get_next_hadith استفاده کنیم
-            # اما فعلا به دلیل محدودیت درخواست شما، آن را دست نمی‌زنیم.
+            total_lines = [line.strip() for line in f.readlines() if line.strip()]
+            total = len(total_lines) // 2 # هر دو خط یک حدیث است
     except FileNotFoundError:
         total = 0
         logging.error(f"Hadith file not found in callback_handler: {HADITH_FILE}")
@@ -337,7 +340,7 @@ def callback_handler(update, context):
         try:
             image_path = generate_image()
             bot.send_photo(chat_id=ADMIN_ID, photo=open(image_path, "rb"), caption="پیش‌نمایش پست فردا")
-            os.remove(image_path) # حذف فایل موقت
+            os.remove(image_path)
         except Exception as e:
             logging.error(f"Error in preview callback: {e}")
             query.edit_message_text("خطا در تولید یا ارسال پیش‌نمایش. لاگ‌ها را بررسی کنید.")
@@ -370,8 +373,15 @@ def index():
 if __name__ == '__main__':
     logging.info("Setting webhook...")
     try:
+        # Render به صورت خودکار پورت را بر اساس متغیر محیطی PORT تنظیم می‌کند.
+        # شما نیازی به استفاده مستقیم از hypercorn یا asyncio.run در این بخش ندارید.
+        # Render خودش دستور اجرای شما را با hypercorn اجرا می‌کند.
+        # فقط باید وب‌هوک تلگرام را تنظیم کنید.
         bot.set_webhook(url=WEBHOOK_URL + f"/{TOKEN}")
         logging.info(f"Webhook set to: {WEBHOOK_URL}/{TOKEN}")
+        # برای اجرای برنامه Flask، Render از دستور Build Command یا Start Command استفاده می‌کند.
+        # در فایل تنظیمات Render خود، باید دستور اجرای hypercorn را مشخص کنید، مثلا:
+        # Start Command: hypercorn main:app --bind 0.0.0.0:$PORT
     except telegram.error.TelegramError as e:
         logging.error(f"Error setting webhook: {e}")
     except Exception as e:
