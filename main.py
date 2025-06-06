@@ -8,6 +8,7 @@ from khayyam import JalaliDatetime
 from datetime import datetime, timedelta
 import requests
 import json
+from PIL import Image, ImageDraw, ImageFont # این خط را اضافه کنید
 
 # --- تنظیمات اصلی ---
 # ==== اطلاعات ربات ====
