@@ -322,17 +322,16 @@ def callback_handler(update, context):
     query.answer()
     
     data = load_data()
-    try: # <<-- این بخش جدید و تصحیح شده است -->>
+    try: 
         with open(HADITH_FILE, encoding="utf-8") as f:
             lines = [line.strip() for line in f.readlines() if line.strip()]
-            total = len(lines) // 2 # فرض بر این است که هر حدیث شامل دو خط (فارسی و انگلیسی) است.
+            total = len(lines) // 2 
     except FileNotFoundError:
         total = 0
         logging.error(f"فایل احادیث در تابع callback_handler پیدا نشد: {HADITH_FILE}")
     except Exception as e:
         total = 0
         logging.error(f"خطا در خواندن فایل احادیث برای محاسبه کل: {e}")
-    # <<-- پایان بخش جدید و تصحیح شده -->>
     
     if query.data == "stats":
         query.edit_message_text(f"تا حالا {data.get('index', 0)} حدیث ارسال شده.\n{total - data.get('index', 0)} حدیث باقی‌مانده.")
@@ -343,25 +342,6 @@ def callback_handler(update, context):
             os.remove(image_path)
         except Exception as e:
             logging.error(f"خطا در تولید یا ارسال پیش‌نمایش در callback: {e}")
-            query.edit_message_text("خطا در تولید یا ارسال پیش‌نمایش. لاگ‌ها را بررسی کنید.")
-    elif query.data == "reset":
-        save_data({"index": 0})
-        query.edit_message_text("شمارنده ریست شد.")
-    else:
-        query.edit_message_text("این گزینه هنوز فعال نیست.")
-    except FileNotFoundError:
-        total = 0
-        logging.error(f"Hadith file not found in callback_handler: {HADITH_FILE}")
-
-    if query.data == "stats":
-        query.edit_message_text(f"تا حالا {data.get('index', 0)} حدیث ارسال شده.\n{total - data.get('index', 0)} حدیث باقی‌مانده.")
-    elif query.data == "preview":
-        try:
-            image_path = generate_image()
-            bot.send_photo(chat_id=ADMIN_ID, photo=open(image_path, "rb"), caption="پیش‌نمایش پست فردا")
-            os.remove(image_path)
-        except Exception as e:
-            logging.error(f"Error in preview callback: {e}")
             query.edit_message_text("خطا در تولید یا ارسال پیش‌نمایش. لاگ‌ها را بررسی کنید.")
     elif query.data == "reset":
         save_data({"index": 0})
