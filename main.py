@@ -19,7 +19,7 @@ import pytz
 # --- تنظیمات اصلی ---
 # ==== اطلاعات ربات ====
 TOKEN = "7996297648:AAHBtbd6lGGQjUIOjDNRsqETIOCNUfPcU00" # توکن خود را اینجا قرار دهید
-CHANNEL_ID = "-1002605751569" # آیدی کانال خود را اینجا قرار دهید
+CHANNEL_ID = "-1001122601232" # آیدی کانال خود را اینجا قرار دهید
 ADMIN_ID = 486475495 # آیدی ادمین خود را اینجا قرار دهید
 WEBHOOK_URL = "https://testmahbood.onrender.com/" # آدرس Webhook خود را اینجا قرار دهید
 SEND_HOUR = 8
