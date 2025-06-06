@@ -135,6 +135,12 @@ def generate_image():
     # ==== محاسبه تاریخ‌ها ====
     now = datetime.now(pytz.timezone("Asia/Tehran"))
     gregorian = now.strftime("%d %B %Y")
+# اطمینان حاصل کنید که اعداد به لاتین هستند. در برخی محیط‌ها ممکن است strftime اعداد فارسی برگرداند.
+# می‌توانیم روز، ماه و سال را جداگانه بگیریم و سپس به هم بچسبانیم.
+    gregorian_day = now.day
+    gregorian_month_name = now.strftime("%B")
+    gregorian_year = now.year
+    gregorian = f"{gregorian_day} {gregorian_month_name} {gregorian_year}" 
 
     # قمری
     try:
@@ -235,7 +241,7 @@ def generate_image():
         
         draw.rounded_rectangle([x_box, y_current, x_box + box_width, y_current + box_height], 
                                radius=corner_radius, 
-                               fill="#4A148C")
+                               fill="#000676")
 
         text_x = (image.width - text_width) // 2
         text_y = y_current + box_padding_y + ((box_height - text_height) // 2) - 5
@@ -263,7 +269,7 @@ def generate_image():
 
             text_x = (image.width - text_width) // 2
             text_y = y_current + box_padding_y + ((box_height - text_height) // 2) - 5
-            draw.text((text_x, text_y), line, font=font_translation_box, fill="#10024a", stroke_width=3, stroke_fill="#f5ce00")
+            draw.text((text_x, text_y), line, font=font_translation_box, fill="#000676", stroke_width=3, stroke_fill="#f5ce00")
 
             y_current += box_height + line_spacing
 
