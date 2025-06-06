@@ -366,7 +366,8 @@ def callback_handler(update, context):
         query.edit_message_text(f"تا حالا {data.get('index', 0)} حدیث ارسال شده.\n{total - data.get('index', 0)} حدیث باقی‌مانده.")
     elif query.data == "preview":
         try:
-            image_data = generate_image() # تغییر اینجا
+            # اینجا تغییرات لازم است
+            image_data = generate_image()
             image_path = image_data["image_path"]
             jalali = image_data["jalali"]
             hijri = image_data["hijri"]
@@ -395,7 +396,7 @@ yun.ir/Taranomejavani_eitaa
 yun.ir/Taranomejavani_tel
 yun.ir/Taranomejavani_bale"""
 
-            bot.send_photo(chat_id=ADMIN_ID, photo=open(image_path, "rb"), caption=caption_text) # اضافه کردن caption
+            bot.send_photo(chat_id=ADMIN_ID, photo=open(image_path, "rb"), caption=caption_text)
             os.remove(image_path)
         except Exception as e:
             logging.error(f"خطا در تولید یا ارسال پیش‌نمایش در callback: {e}")
@@ -405,7 +406,6 @@ yun.ir/Taranomejavani_bale"""
         query.edit_message_text("شمارنده ریست شد.")
     else:
         query.edit_message_text("این گزینه هنوز فعال نیست.")
-
 # --- هندلرها ---
 # --- هندلرها ---
 def start(update, context):
