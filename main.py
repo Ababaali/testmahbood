@@ -382,10 +382,10 @@ def callback_handler(update, context):
 🌙 {hijri}
 ✝️ {gregorian}
 
-متن فارسی:
+
 {hadith_fa}
 
-متن انگلیسی:
+
 {hadith_tr}
 
 ┈••✾•🍃🍃🍃•✾••┈•
