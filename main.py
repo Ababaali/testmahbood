@@ -279,7 +279,6 @@ def generate_image():
     # ==== ذخیره و برگرداندن مسیر ====
     output_path = "temp_hadith_preview.png"
     image.save(output_path)
-    return output_path
 
 # برگرداندن مسیر عکس و همچنین متون برای استفاده در کپشن
     return {
