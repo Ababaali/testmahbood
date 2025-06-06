@@ -64,7 +64,15 @@ def generate_image():
 
     img = Image.open("000.png").convert("RGB").resize((1080, 1920))
 
-    
+    from PIL import Image, ImageDraw, ImageFont # مطمئن شوید که این import در بالای فایل main.py وجود دارد
+
+
+def generate_image():
+    img = Image.open("000.png").resize((1080, 1080)) #
+    draw = ImageDraw.Draw(img) # این خط را اضافه کنید
+
+    # ... (بقیه کدهای موجود در تابع generate_image) ...
+    draw.text((50, 50), "امروز", font=load_font("Pinar-DS3-FD-Black", 70), fill="white") 
     def load_font(name, size):
         return ImageFont.truetype(f"fonts/{name}.ttf", size)
 
