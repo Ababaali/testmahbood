@@ -8,16 +8,15 @@ from khayyam import JalaliDatetime
 from datetime import datetime, timedelta
 import requests
 import json
-from PIL import Image, ImageDraw, ImageFont # این خط باید اینجا باشد و فقط یک بار باشد
+from PIL import Image, ImageDraw, ImageFont
+from textwrap import wrap # اضافه کردن این import به بالای فایل
 
 # --- تنظیمات اصلی ---
 # ==== اطلاعات ربات ====
-# **اطمینان حاصل کنید که این توکن دقیقاً توکن ربات شما از BotFather است.**
-# **من توکن شما را در این نسخه بازسازی شده به حالت اولیه‌اش (آخرین توکن صحیح که شما ارسال کردید) برگرداندم.**
-TOKEN = "7996297648:AAHBtbd6lGGQjUIOjDNRsqETIOCNUfPcU00"
-CHANNEL_ID = "-1002605751569"
-ADMIN_ID = 486475495
-WEBHOOK_URL = "https://testmahbood.onrender.com/"
+TOKEN = "7996297648:AAHBtbd6lGGQjUIOjDNRsqETIOCNUfPcU00" # توکن شما
+CHANNEL_ID = "-1002605751569" # آیدی کانال شما
+ADMIN_ID = 486475495 # آیدی ادمین شما
+WEBHOOK_URL = "https://testmahbood.onrender.com/" # آدرس وب‌هوک شما
 SEND_HOUR = 8
 
 
@@ -69,7 +68,7 @@ def get_next_hadith():
     
     if not hadiths:
         logging.warning("Hadith file is empty or malformed.")
-        return "خطا: فایلا حادیث خالی است."
+        return "خطا: فایل احادیث خالی است."
 
     index = data.get("index", 0)
     if index >= len(hadiths):
@@ -104,16 +103,10 @@ def generate_image():
     hadith = get_next_hadith()
 
     # اندازه تصویر پس‌زمینه (مثلاً برای گوشی‌های عمودی)
-    # اگر 000.png شما نسبت 1:1 دارد و می‌خواهید پس‌زمینه تصویر کشیده نشود،
-    # می‌توانید 000.png را به اندازه (1080, 1920) بسازید یا از یک پس‌زمینه خالی استفاده کنید.
-    # در غیر این صورت، این resize باعث کشیدگی می‌شود.
-    # برای این مثال، فرض می‌کنیم 000.png شما یک تصویر پس‌زمینه عمودی است.
     img = Image.open("000.png").convert("RGB").resize((1080, 1920))
     draw = ImageDraw.Draw(img) 
 
     # رسم متن‌ها - تنظیمات موقعیت و فونت‌ها
-    # این موقعیت‌ها تقریبی هستند و ممکن است نیاز به تنظیم دقیق داشته باشند.
-    
     draw.text((50, 50), "امروز", font=load_font("Pinar-DS3-FD-Black", 70), fill="white")
     draw.text((50, 150), f"شمسی: {jalali}", font=load_font("Pinar-DS3-FD-Bold", 70), fill="white")
     draw.text((50, 250), f"میلادی: {gregorian}", font=load_font("Pinar-DS3-FD-Bold", 70), fill="white")
@@ -122,28 +115,26 @@ def generate_image():
     draw.rectangle((50, 460, 350, 490), fill="white") 
     draw.text((60, 460), "حدیث", font=load_font("Pinar-DS3-FD-Black", 70), fill="#014612")
 
-    # کادر حدیث - ممکن است نیاز به محاسبات برای قرارگیری بهتر متن داشته باشد.
-    draw.rectangle((50, 520, 1030, 1800), fill="#800080") # کادر بزرگتر برای حدیث
+    # کادر حدیث
+    draw.rectangle((50, 520, 1030, 1800), fill="#800080")
     
-    # برای شکست خطوط حدیث:
-    from textwrap import wrap
-    max_width_px = 960 # 1030 - 70 = 960 (عرض کادر منهای padding)
+    # برای شکست خطوط حدیث و رفع خطای "can't measure length of multiline text"
     font_for_hadith = load_font("Pinar-DS3-FD-Bold", 50)
-    lines = []
-    current_line = ""
-    words = hadith.split(' ')
-    for word in words:
-        test_line = current_line + word + ' '
-        if draw.textlength(test_line, font=font_for_hadith) < max_width_px:
-            current_line = test_line
-        else:
-            lines.append(current_line.strip())
-            current_line = word + ' '
-    lines.append(current_line.strip())
+    max_pixel_width_for_hadith = 1030 - (70 * 2) # عرض کادر منهای padding داخلی
+    
+    # تخمین تعداد کاراکترها در هر خط (تقریبی)
+    # این روش دقیق نیست ولی اغلب کارساز است.
+    avg_char_width = font_for_hadith.getsize("س")[0] # اندازه تقریبی یک کاراکتر متوسط فارسی
+    if not avg_char_width: # در صورت عدم موفقیت getsize
+        avg_char_width = 25 # مقدار پیش‌فرض
+    max_chars_per_line = int(max_pixel_width_for_hadith / avg_char_width) - 2 # بافر کوچک
+
+    wrapped_lines = wrap(hadith, width=max_chars_per_line) # استفاده صحیح از textwrap.wrap
 
     y_text = 540
-    for line in lines:
+    for line in wrapped_lines:
         draw.text((70, y_text), line, font=font_for_hadith, fill="white")
+        # ارتفاع خط را با font.getsize(line)[1] محاسبه می‌کنیم
         y_text += font_for_hadith.getsize(line)[1] + 10 # فاصله بین خطوط
 
     image_path = "temp_hadith_preview.png" 
