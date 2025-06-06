@@ -80,6 +80,7 @@ def get_next_hadith():
     return current_hadith
 
 # --- تولید تصویر حدیث ---
+# --- تولید تصویر حدیث ---
 def generate_image():
     """تصویر حدیث روزانه را تولید و مسیر آن را برمی‌گرداند."""
     today = datetime.now()
@@ -102,7 +103,6 @@ def generate_image():
 
     hadith = get_next_hadith()
 
-    # اندازه تصویر پس‌زمینه (مثلاً برای گوشی‌های عمودی)
     img = Image.open("000.png").convert("RGB").resize((1080, 1920))
     draw = ImageDraw.Draw(img) 
 
@@ -118,15 +118,22 @@ def generate_image():
     # کادر حدیث
     draw.rectangle((50, 520, 1030, 1800), fill="#800080")
     
-    # برای شکست خطوط حدیث و رفع خطای "can't measure length of multiline text"
+    # برای شکست خطوط حدیث و رفع خطای "getsize"
     font_for_hadith = load_font("Pinar-DS3-FD-Bold", 50)
     max_pixel_width_for_hadith = 1030 - (70 * 2) # عرض کادر منهای padding داخلی
     
     # تخمین تعداد کاراکترها در هر خط (تقریبی)
-    # این روش دقیق نیست ولی اغلب کارساز است.
-    avg_char_width = font_for_hadith.getsize("س")[0] # اندازه تقریبی یک کاراکتر متوسط فارسی
-    if not avg_char_width: # در صورت عدم موفقیت getsize
+    # برای تخمین عرض متوسط کاراکتر (برای textwrap.wrap) از getlength استفاده می‌کنیم
+    try:
+        avg_char_width = font_for_hadith.getlength("س") # اندازه‌ی یک کاراکتر متوسط (مثلاً 'س')
+    except AttributeError:
+        # Fallback برای نسخه‌های Pillow قدیمی‌تر که getlength ندارند (بعید است در 10.3.0)
+        # یا اگر getlength به هر دلیلی کار نکند.
+        # در این حالت، باید یک تخمین دستی بدهیم یا از getbbox برای اندازه‌گیری یک حرف استفاده کنیم.
+        # مثلاً: avg_char_width = font_for_hadith.getbbox('س')[2] - font_for_hadith.getbbox('س')[0]
         avg_char_width = 25 # مقدار پیش‌فرض
+        logging.warning("font.getlength not available or failed. Using estimated average character width.")
+
     max_chars_per_line = int(max_pixel_width_for_hadith / avg_char_width) - 2 # بافر کوچک
 
     wrapped_lines = wrap(hadith, width=max_chars_per_line) # استفاده صحیح از textwrap.wrap
@@ -134,8 +141,19 @@ def generate_image():
     y_text = 540
     for line in wrapped_lines:
         draw.text((70, y_text), line, font=font_for_hadith, fill="white")
-        # ارتفاع خط را با font.getsize(line)[1] محاسبه می‌کنیم
-        y_text += font_for_hadith.getsize(line)[1] + 10 # فاصله بین خطوط
+        
+        # **** اصلاح اصلی اینجاست ****
+        # برای گرفتن ارتفاع خط از getbbox استفاده می‌کنیم
+        # getbbox(line) -> (left, top, right, bottom)
+        # height = bottom - top
+        try:
+            bbox = font_for_hadith.getbbox(line)
+            line_height = bbox[3] - bbox[1] # height = bottom - top
+        except Exception as e:
+            logging.error(f"Error getting text bounding box for line '{line}': {e}. Using default line height.")
+            line_height = 50 # ارتفاع پیش‌فرض در صورت خطا
+
+        y_text += line_height + 10 # فاصله بین خطوط
 
     image_path = "temp_hadith_preview.png" 
     img.save(image_path)
