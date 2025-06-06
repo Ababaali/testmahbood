@@ -12,6 +12,7 @@ import json
 from PIL import Image, ImageDraw, ImageFont
 from textwrap import wrap
 from hijri_converter import Gregorian
+from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
 
 # --- تنظیمات اصلی ---
@@ -431,7 +432,16 @@ if __name__ == '__main__':
     try:
         bot.set_webhook(url=WEBHOOK_URL + f"/{TOKEN}")
         logging.info(f"Webhook set to: {WEBHOOK_URL}/{TOKEN}")
-    except telegram.error.TelegramError as e:
-        logging.error(f"Error setting webhook: {e}")
+
+        # --- اینجا کد APScheduler را اضافه کنید ---
+        scheduler = BackgroundScheduler(timezone=pytz.timezone("Asia/Tehran"))
+        scheduler.add_job(send_daily, 'cron', hour=8, minute=0, id='daily_hadith_job')
+        logging.info("Scheduler job added for daily hadith at 8:00 AM Tehran time.")
+        scheduler.start()
+        logging.info("Scheduler started.")
+        # --- پایان اضافه کردن کد APScheduler ---
+
+        # Render.com به طور خودکار پورت را تنظیم می‌کند
+        app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
     except Exception as e:
-        logging.error(f"An unexpected error occurred while setting webhook: {e}")
+        logging.error(f"Error during bot setup: {e}")
