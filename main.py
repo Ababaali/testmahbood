@@ -8,17 +8,15 @@ from khayyam import JalaliDatetime
 from datetime import datetime, timedelta
 import requests
 import json
-from PIL import Image, ImageDraw, ImageFont # این خط را اضافه کنید
+from PIL import Image, ImageDraw, ImageFont # این خط باید اینجا باشد و تکرار نشود
 
 # --- تنظیمات اصلی ---
 # ==== اطلاعات ربات ====
-TOKEN = "7996297648:AAHBtbd6lGGQjUIOjDNRsqETIOCNUfPcU00"
-CHANNEL_ID = "-1002605751569"
-ADMIN_ID = 486475495
-WEBHOOK_URL = "https://testmahbood.onrender.com/"
+TOKEN = "7996297648:AAHBtbd6lGGjUIOjDNRsqETIOCNUfPcU00" # توکن شما
+CHANNEL_ID = "-1002605751569" # آیدی کانال شما
+ADMIN_ID = 486475495 # آیدی ادمین شما
+WEBHOOK_URL = "https://testmahbood.onrender.com/" # آدرس وب‌هوک شما
 SEND_HOUR = 8
-
-
 
 
 # --- ربات و فلَسک ---
@@ -26,7 +24,7 @@ bot = telegram.Bot(token=TOKEN)
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
-dispatcher = Dispatcher(bot, None, workers=4, use_context=True)
+dispatcher = Dispatcher(bot, None, workers=4, use_context=True) # workers روی 4 تنظیم شد
 
 # --- دیتابیس ساده ---
 DATA_FILE = "data.json"
@@ -39,6 +37,15 @@ def load_data():
 def save_data(data):
     with open(DATA_FILE, "w") as f:
         json.dump(data, f)
+
+# --- توابع کمکی برای تصویر ---
+def load_font(font_name, font_size):
+    try:
+        return ImageFont.truetype(f"fonts/{font_name}.ttf", font_size)
+    except IOError:
+        logging.error(f"Could not load font: fonts/{font_name}.ttf")
+        # Fallback to a default font or raise an error if font is critical
+        return ImageFont.load_default() # Fallback, you might want to handle this better
 
 # --- مدیریت احادیث ---
 HADITH_FILE = "hadiths.txt"
@@ -55,50 +62,56 @@ def get_next_hadith():
 
 # --- تولید تصویر حدیث ---
 def generate_image():
-    from PIL import Image, ImageDraw, ImageFont
-
     today = datetime.now()
     jalali = JalaliDatetime(today).strftime("%A %d %B %Y")
     gregorian = today.strftime("%A %d %B %Y")
-    hijri = requests.get(f"http://api.aladhan.com/v1/gToH?date={today.strftime('%d-%m-%Y')}").json()["data"]["hijri"]["date"]
+    
+    # اطمینان حاصل کنید که این API کار می‌کند و پاسخ مناسبی می‌دهد.
+    # اگر شبکه قطع شود یا API خطا دهد، این خط می‌تواند مشکل ساز شود.
+    try:
+        hijri_response = requests.get(f"http://api.aladhan.com/v1/gToH?date={today.strftime('%d-%m-%Y')}").json()
+        hijri = hijri_response["data"]["hijri"]["date"]
+    except Exception as e:
+        logging.error(f"Error fetching Hijri date: {e}")
+        hijri = "تاریخ قمری نامشخص" # Fallback در صورت بروز خطا
+
     hadith = get_next_hadith()
 
+    # تغییر اندازه به (1080, 1920) برای تصویر عمودی گوشی
     img = Image.open("000.png").convert("RGB").resize((1080, 1920))
+    draw = ImageDraw.Draw(img) # شیء draw اینجا تعریف می‌شود
 
-    from PIL import Image, ImageDraw, ImageFont # مطمئن شوید که این import در بالای فایل main.py وجود دارد
-
-
-def generate_image():
-    img = Image.open("000.png").resize((1080, 1080)) #
-    draw = ImageDraw.Draw(img) # این خط را اضافه کنید
-
-    # ... (بقیه کدهای موجود در تابع generate_image) ...
-    draw.text((50, 50), "امروز", font=load_font("Pinar-DS3-FD-Black", 70), fill="white") 
-    def load_font(name, size):
-        return ImageFont.truetype(f"fonts/{name}.ttf", size)
-
+    # رسم متن‌ها
+    # موقعیت‌ها و اندازه‌های فونت ممکن است نیاز به تنظیم دقیق داشته باشند
+    # برای مثال، متن "امروز" با ارتفاع 70 پیکسل و شروع از (50, 50)
+    # بقیه متن‌ها با فاصله 100 پیکسل از هم
+    
     draw.text((50, 50), "امروز", font=load_font("Pinar-DS3-FD-Black", 70), fill="white")
     draw.text((50, 150), f"شمسی: {jalali}", font=load_font("Pinar-DS3-FD-Bold", 70), fill="white")
     draw.text((50, 250), f"میلادی: {gregorian}", font=load_font("Pinar-DS3-FD-Bold", 70), fill="white")
     draw.text((50, 350), f"قمری: {hijri}", font=load_font("Pinar-DS3-FD-Bold", 70), fill="white")
 
-    draw.rectangle((50, 460, 350, 490), fill="white")
+    draw.rectangle((50, 460, 350, 490), fill="white") # کادر برای کلمه "حدیث"
     draw.text((60, 460), "حدیث", font=load_font("Pinar-DS3-FD-Black", 70), fill="#014612")
 
-    draw.rectangle((50, 520, 1030, 1000), fill="#800080")
+    # کادر برای حدیث، اندازه‌های آن را تنظیم کنید تا حدیث به خوبی جا شود
+    # برای کنترل بهتر شکست خطوط در حدیث، می‌توانید از تابع textwrap استفاده کنید.
+    # اما برای سادگی، فعلاً فرض می‌کنیم که حدیث کوتاه است یا با اندازه فونت فعلی جا می‌شود.
+    draw.rectangle((50, 520, 1030, 1000), fill="#800080") # کادر حدیث (بنفش)
     draw.text((70, 540), hadith, font=load_font("Pinar-DS3-FD-Bold", 50), fill="white")
 
-    path = "output.jpg"
-    img.save(path)
-    return path
+    image_path = "temp_hadith_preview.png" # نام فایل موقت برای ذخیره
+    img.save(image_path) # ذخیره تصویر
+    return image_path # برگرداندن مسیر فایل
 
-# --- ارسال پست روزانه ---
+# --- ارسال پست روزانه (هنوز نیازمند زمانبند خارجی) ---
 def send_daily():
     try:
         image_path = generate_image()
         bot.send_photo(chat_id=CHANNEL_ID, photo=open(image_path, "rb"), reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("📤 دریافت تصویر", switch_inline_query="share_today")]
         ]))
+        os.remove(image_path) # حذف فایل موقت بعد از ارسال
     except Exception as e:
         logging.error(f"خطا در ارسال روزانه: {e}")
 
@@ -124,8 +137,9 @@ def callback_handler(update, context):
     if query.data == "stats":
         query.edit_message_text(f"تا حالا {data['index']} حدیث ارسال شده.\n{total - data['index']} حدیث باقی‌مانده.")
     elif query.data == "preview":
-        image = generate_image()
-        bot.send_photo(chat_id=ADMIN_ID, photo=open(image, "rb"), caption="پیش‌نمایش پست فردا")
+        image_path = generate_image() # نام متغیر را به image_path تغییر دادیم
+        bot.send_photo(chat_id=ADMIN_ID, photo=open(image_path, "rb"), caption="پیش‌نمایش پست فردا")
+        os.remove(image_path) # این خط را برای حذف فایل موقت اضافه کنید
     elif query.data == "reset":
         save_data({"index": 0})
         query.edit_message_text("شمارنده ریست شد.")
@@ -133,6 +147,10 @@ def callback_handler(update, context):
         query.edit_message_text("این گزینه هنوز فعال نیست.")
 
 # --- هندلرها ---
+def start(update, context): # اضافه کردن هندلر /start
+    update.message.reply_text("سلام! به ربات حدیث خوش آمدید. برای دیدن پنل مدیریت، دستور /admin را ارسال کنید.")
+
+dispatcher.add_handler(CommandHandler("start", start)) # اضافه کردن هندلر /start
 dispatcher.add_handler(CommandHandler("admin", admin))
 dispatcher.add_handler(CallbackQueryHandler(callback_handler))
 
@@ -147,4 +165,4 @@ def index():
 
 if __name__ == '__main__':
     bot.set_webhook(url=WEBHOOK_URL + f"/{TOKEN}")
-  
+    # حذف app.run(debug=True) زیرا از hypercorn برای اجرا استفاده می‌کنیم
