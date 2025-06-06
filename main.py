@@ -87,24 +87,22 @@ def wrap_text(text, font, max_width, draw):
 # --- مدیریت احادیث ---
 HADITH_FILE = "hadiths.txt"
 def get_next_hadith():
-    """حدیث بعدی را از فایل می‌خواند و ایندکس را به‌روزرسانی می‌کند.
-    و اگر شامل ترجمه انگلیسی بود، آن را هم برمی‌گرداند.
-    این تابع برای خواندن جفت حدیث فارسی/انگلیسی و حذف پیشوند اصلاح شده است.
-    """
     data = load_data()
     try:
         with open(HADITH_FILE, "r", encoding="utf-8") as f:
             lines = [line.strip() for line in f.readlines() if line.strip()]
-            
+
         hadiths_parsed = []
         for i in range(0, len(lines), 2):
             persian_text = lines[i]
             english_text = lines[i+1] if (i+1) < len(lines) else ""
-            
-            # حذف پیشوند 
-            if persian_text.startswith("", 1)[1].strip()
-            # این خطوط ناقص که قبلاً باعث خطا می‌شدند، در این کد حذف شده‌اند.
-            if english_text.startswith("", 1)[1].strip()
+
+            # حذف پیشوندهای احتمالی
+            for prefix in ["حدیث:", "حدیث ", ":", "-", "•", "*", "ـ"]:
+                if persian_text.startswith(prefix):
+                    persian_text = persian_text[len(prefix):].strip()
+                if english_text.startswith(prefix):
+                    english_text = english_text[len(prefix):].strip()
 
             hadiths_parsed.append({"persian": persian_text, "english": english_text})
 
@@ -114,7 +112,7 @@ def get_next_hadith():
     except Exception as e:
         logging.error(f"Error parsing hadith file: {e}")
         return {"persian": "خطا در خواندن فایل احادیث.", "english": "Error reading hadith file."}
-    
+
     if not hadiths_parsed:
         logging.warning("Hadith file is empty or malformed.")
         return {"persian": "خطا: فایل احادیث خالی است.", "english": "Error: Hadith file is empty."}
@@ -122,11 +120,12 @@ def get_next_hadith():
     index = data.get("index", 0)
     if index >= len(hadiths_parsed):
         index = 0
-    
+
     current_hadith = hadiths_parsed[index]
     data["index"] = index + 1
     save_data(data)
     return current_hadith
+
 
 
 # --- تولید تصویر حدیث ---
