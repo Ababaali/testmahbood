@@ -40,7 +40,7 @@ def save_data(data):
         json.dump(data, f)
 
 # --- مدیریت احادیث ---
-HADITH_FILE = "hadith.txt"
+HADITH_FILE = "hadiths.txt"
 def get_next_hadith():
     data = load_data()
     with open(HADITH_FILE, encoding="utf-8") as f:
