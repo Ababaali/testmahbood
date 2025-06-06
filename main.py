@@ -16,10 +16,10 @@ import pytz
 
 # --- تنظیمات اصلی ---
 # ==== اطلاعات ربات ====
-TOKEN = "7996297648:AAHBtbd6lGGjUIOjDNRsqETIOCNUfPcU00" # توکن شما
-CHANNEL_ID = "-1002605751569" # آیدی کانال شما
-ADMIN_ID = 486475495 # آیدی ادمین شما
-WEBHOOK_URL = "https://testmahbood.onrender.com/"
+TOKEN = "7996297648:AAHBtbd6lGGjUIOjDNRsqETIOCNUfPcU00" # توکن خود را اینجا قرار دهید
+CHANNEL_ID = "-1002605751569" # آیدی کانال خود را اینجا قرار دهید
+ADMIN_ID = 486475495 # آیدی ادمین خود را اینجا قرار دهید
+WEBHOOK_URL = "https://testmahbood.onrender.com/" # آدرس Webhook خود را اینجا قرار دهید
 SEND_HOUR = 8
 
 
@@ -69,11 +69,8 @@ def wrap_text(text, font, max_width, draw):
         test_line = f"{line} {word}".strip()
         try:
             # استفاده از textbbox برای اندازه گیری عرض
-            # textbbox returns (left, top, right, bottom), so width is right - left
             w = draw.textbbox((0, 0), test_line, font=font)[2] - draw.textbbox((0, 0), test_line, font=font)[0]
-        except AttributeError: # Fallback for older Pillow versions if textbbox is not available
-             # این خطوط برای سازگاری با نسخه‌های قدیمی Pillow است.
-             # در نسخه‌های جدیدتر، textbbox ترجیح داده می‌شود.
+        except AttributeError:
              w = font.getsize(test_line)[0] 
         
         if w <= max_width:
@@ -100,14 +97,13 @@ def get_next_hadith():
             lines = [line.strip() for line in f.readlines() if line.strip()]
             
         hadiths_parsed = []
-        # فرض می‌کنیم فرمت همیشه جفت‌های حدیث فارسی و سپس انگلیسی است.
         for i in range(0, len(lines), 2):
             persian_text = lines[i]
             english_text = lines[i+1] if (i+1) < len(lines) else ""
             
             # حذف پیشوند 
-           
-            # خط مشکل‌ساز "if persian_text.startswith("", 1)[1].strip()" اینجا حذف شده است.
+            if persian_text.startswith("", 1)[1].strip()
+            # این خطوط ناقص که قبلاً باعث خطا می‌شدند، در این کد حذف شده‌اند.
             if english_text.startswith("", 1)[1].strip()
 
             hadiths_parsed.append({"persian": persian_text, "english": english_text})
@@ -125,7 +121,7 @@ def get_next_hadith():
 
     index = data.get("index", 0)
     if index >= len(hadiths_parsed):
-        index = 0 # بازنشانی شمارنده در صورت اتمام احادیث
+        index = 0
     
     current_hadith = hadiths_parsed[index]
     data["index"] = index + 1
@@ -133,7 +129,7 @@ def get_next_hadith():
     return current_hadith
 
 
-# --- تولید تصویر حدیث (بخش طراحی بازسازی شده) ---
+# --- تولید تصویر حدیث ---
 def generate_image():
     """تصویر حدیث روزانه را با طرح جدید تولید و مسیر آن را برمی‌گرداند."""
 
