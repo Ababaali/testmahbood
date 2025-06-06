@@ -16,9 +16,9 @@ import pytz
 
 # --- تنظیمات اصلی ---
 # ==== اطلاعات ربات ====
-TOKEN = "7996297648:AAHBtbd6lGGQjUIOjDNRsqETIOCNUfPcU00"
-CHANNEL_ID = "-1002605751569"
-ADMIN_ID = 486475495
+TOKEN = "7996297648:AAHBtbd6lGGjUIOjDNRsqETIOCNUfPcU00" # توکن شما
+CHANNEL_ID = "-1002605751569" # آیدی کانال شما
+ADMIN_ID = 486475495 # آیدی ادمین شما
 WEBHOOK_URL = "https://testmahbood.onrender.com/"
 SEND_HOUR = 8
 
@@ -67,11 +67,13 @@ def wrap_text(text, font, max_width, draw):
     line = ""
     for word in words:
         test_line = f"{line} {word}".strip()
-        # استفاده از textbbox برای اندازه گیری عرض
-        # textbbox returns (left, top, right, bottom), so width is right - left
         try:
+            # استفاده از textbbox برای اندازه گیری عرض
+            # textbbox returns (left, top, right, bottom), so width is right - left
             w = draw.textbbox((0, 0), test_line, font=font)[2] - draw.textbbox((0, 0), test_line, font=font)[0]
         except AttributeError: # Fallback for older Pillow versions if textbbox is not available
+             # این خطوط برای سازگاری با نسخه‌های قدیمی Pillow است.
+             # در نسخه‌های جدیدتر، textbbox ترجیح داده می‌شود.
              w = font.getsize(test_line)[0] 
         
         if w <= max_width:
@@ -105,6 +107,7 @@ def get_next_hadith():
             
             # حذف پیشوند 
             if persian_text.startswith("", 1)[1].strip()
+            # خط مشکل‌ساز "if persian_text.startswith("", 1)[1].strip()" اینجا حذف شده است.
             if english_text.startswith("", 1)[1].strip()
 
             hadiths_parsed.append({"persian": persian_text, "english": english_text})
@@ -325,11 +328,9 @@ def callback_handler(update, context):
     
     data = load_data()
     try:
-        # برای دقت بیشتر در آمار، این بخش باید از منطق get_next_hadith پیروی کند
-        # اما فعلاً برای عدم تغییر در منطق اصلی خارج از طراحی، به همین شکل باقی می‌ماند.
         with open(HADITH_FILE, encoding="utf-8") as f:
             total_lines = [line.strip() for line in f.readlines() if line.strip()]
-            total = len(total_lines) // 2 # هر دو خط یک حدیث است
+            total = len(total_lines) // 2
     except FileNotFoundError:
         total = 0
         logging.error(f"Hadith file not found in callback_handler: {HADITH_FILE}")
@@ -373,15 +374,8 @@ def index():
 if __name__ == '__main__':
     logging.info("Setting webhook...")
     try:
-        # Render به صورت خودکار پورت را بر اساس متغیر محیطی PORT تنظیم می‌کند.
-        # شما نیازی به استفاده مستقیم از hypercorn یا asyncio.run در این بخش ندارید.
-        # Render خودش دستور اجرای شما را با hypercorn اجرا می‌کند.
-        # فقط باید وب‌هوک تلگرام را تنظیم کنید.
         bot.set_webhook(url=WEBHOOK_URL + f"/{TOKEN}")
         logging.info(f"Webhook set to: {WEBHOOK_URL}/{TOKEN}")
-        # برای اجرای برنامه Flask، Render از دستور Build Command یا Start Command استفاده می‌کند.
-        # در فایل تنظیمات Render خود، باید دستور اجرای hypercorn را مشخص کنید، مثلا:
-        # Start Command: hypercorn main:app --bind 0.0.0.0:$PORT
     except telegram.error.TelegramError as e:
         logging.error(f"Error setting webhook: {e}")
     except Exception as e:
