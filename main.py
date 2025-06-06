@@ -25,7 +25,7 @@ bot = telegram.Bot(token=TOKEN)
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
-dispatcher = Dispatcher(bot, None, workers=0, use_context=True)
+dispatcher = Dispatcher(bot, None, workers=4, use_context=True)
 
 # --- دیتابیس ساده ---
 DATA_FILE = "data.json"
@@ -138,4 +138,4 @@ def index():
 
 if __name__ == '__main__':
     bot.set_webhook(url=WEBHOOK_URL + f"/{TOKEN}")
-    app.run(debug=True)
+  
