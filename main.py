@@ -48,7 +48,7 @@ def load_font(font_name, font_size):
         return ImageFont.load_default() # Fallback, you might want to handle this better
 
 # --- مدیریت احادیث ---
-HADITH_FILE = "hadiths.txt"
+HADITH_FILE = "hadiths.txt" # نام فایل احادیث صحیح شد
 def get_next_hadith():
     data = load_data()
     with open(HADITH_FILE, encoding="utf-8") as f:
@@ -66,14 +66,12 @@ def generate_image():
     jalali = JalaliDatetime(today).strftime("%A %d %B %Y")
     gregorian = today.strftime("%A %d %B %Y")
     
-    # اطمینان حاصل کنید که این API کار می‌کند و پاسخ مناسبی می‌دهد.
-    # اگر شبکه قطع شود یا API خطا دهد، این خط می‌تواند مشکل ساز شود.
     try:
         hijri_response = requests.get(f"http://api.aladhan.com/v1/gToH?date={today.strftime('%d-%m-%Y')}").json()
         hijri = hijri_response["data"]["hijri"]["date"]
     except Exception as e:
         logging.error(f"Error fetching Hijri date: {e}")
-        hijri = "تاریخ قمری نامشخص" # Fallback در صورت بروز خطا
+        hijri = "تاریخ قمری نامشخص"
 
     hadith = get_next_hadith()
 
@@ -83,8 +81,6 @@ def generate_image():
 
     # رسم متن‌ها
     # موقعیت‌ها و اندازه‌های فونت ممکن است نیاز به تنظیم دقیق داشته باشند
-    # برای مثال، متن "امروز" با ارتفاع 70 پیکسل و شروع از (50, 50)
-    # بقیه متن‌ها با فاصله 100 پیکسل از هم
     
     draw.text((50, 50), "امروز", font=load_font("Pinar-DS3-FD-Black", 70), fill="white")
     draw.text((50, 150), f"شمسی: {jalali}", font=load_font("Pinar-DS3-FD-Bold", 70), fill="white")
@@ -94,9 +90,7 @@ def generate_image():
     draw.rectangle((50, 460, 350, 490), fill="white") # کادر برای کلمه "حدیث"
     draw.text((60, 460), "حدیث", font=load_font("Pinar-DS3-FD-Black", 70), fill="#014612")
 
-    # کادر برای حدیث، اندازه‌های آن را تنظیم کنید تا حدیث به خوبی جا شود
-    # برای کنترل بهتر شکست خطوط در حدیث، می‌توانید از تابع textwrap استفاده کنید.
-    # اما برای سادگی، فعلاً فرض می‌کنیم که حدیث کوتاه است یا با اندازه فونت فعلی جا می‌شود.
+    # کادر برای حدیث
     draw.rectangle((50, 520, 1030, 1000), fill="#800080") # کادر حدیث (بنفش)
     draw.text((70, 540), hadith, font=load_font("Pinar-DS3-FD-Bold", 50), fill="white")
 
@@ -137,7 +131,7 @@ def callback_handler(update, context):
     if query.data == "stats":
         query.edit_message_text(f"تا حالا {data['index']} حدیث ارسال شده.\n{total - data['index']} حدیث باقی‌مانده.")
     elif query.data == "preview":
-        image_path = generate_image() # نام متغیر را به image_path تغییر دادیم
+        image_path = generate_image()
         bot.send_photo(chat_id=ADMIN_ID, photo=open(image_path, "rb"), caption="پیش‌نمایش پست فردا")
         os.remove(image_path) # این خط را برای حذف فایل موقت اضافه کنید
     elif query.data == "reset":
