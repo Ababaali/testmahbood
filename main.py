@@ -268,23 +268,7 @@ def generate_image():
             y_current += box_height + line_spacing
 
 
-    # --- اضافه کردن لوگو ---
-    try:
-        logo_path = os.path.join("files", "logo.png")
-        logo = Image.open(logo_path).convert("RGBA")
-        
-        logo_width = 300 
-        logo_height = int(logo.height * (logo_width / logo.width))
-        logo = logo.resize((logo_width, logo_height))
-
-        x_logo = (image.width - logo_width) / 2
-        y_logo = image.height - logo_height - 50
-
-        image.paste(logo, (int(x_logo), int(y_logo)), logo)
-    except FileNotFoundError:
-        logging.warning("Logo file not found. Skipping logo placement.")
-    except Exception as e:
-        logging.error(f"Error placing logo: {e}")
+   
 
     # ==== ذخیره و برگرداندن مسیر ====
     output_path = "temp_hadith_preview.png"
